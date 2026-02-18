@@ -97,18 +97,20 @@
             pointer-events: none;
         }
         
+        /* 修复九宫格斜线样式 - 重新计算坐标和长度 */
         .palace-line {
             position: absolute;
-            width: 141px;
+            width: 142px;
             height: 1px;
             background: #333;
             transform-origin: left center;
         }
-        
-        .palace-line.top-left { top: 50px; left: 154px; transform: rotate(45deg); }
-        .palace-line.top-right { top: 50px; right: 154px; transform: rotate(-45deg); }
-        .palace-line.bottom-left { bottom: 50px; left: 154px; transform: rotate(-45deg); }
-        .palace-line.bottom-right { bottom: 50px; right: 154px; transform: rotate(45deg); }
+        /* 上方九宫格（黑方）斜线 */
+        .palace-line.top-left { top: 100px; left: 154px; transform: rotate(45deg); }
+        .palace-line.top-right { top: 100px; left: 254px; transform: rotate(-45deg); }
+        /* 下方九宫格（红方）斜线 */
+        .palace-line.bottom-left { top: 400px; left: 154px; transform: rotate(-45deg); }
+        .palace-line.bottom-right { top: 400px; left: 254px; transform: rotate(45deg); }
         
         .river {
             position: absolute;
@@ -562,6 +564,14 @@
             .side-panel {
                 width: 100%;
             }
+            /* 适配移动端九宫格 */
+            .palace-line {
+                width: 114px;
+            }
+            .palace-line.top-left { top: 80px; left: 123px; }
+            .palace-line.top-right { top: 80px; left: 203px; }
+            .palace-line.bottom-left { top: 320px; left: 123px; }
+            .palace-line.bottom-right { top: 320px; left: 203px; }
         }
     </style>
 </head>
@@ -757,6 +767,7 @@
         function init() {
             localStorage.setItem('chess_player_id', myPlayerId);
             drawBoard();
+            initBoard(true); // 初始化棋盘
             loadGame();
             startSync();
             startTimer();
@@ -938,8 +949,10 @@
             gameState.moves = [];
             gameState.moveCount = 0;
             
-            // 这里简化处理：直接清空，实际应该一步步回放
-            // 由于完整回放比较复杂，这里采用重置方式
+            // 回放走棋
+            movesToReplay.forEach(move => {
+                makeMove(move.from.row, move.from.col, move.to.row, move.to.col, true);
+            });
             
             gameState.undoRequest = null;
             gameState.chat.push({
@@ -963,11 +976,12 @@
             showToast('已拒绝悔棋请求');
         }
         
-        // ==================== 绘制棋盘（与之前相同）====================
+        // ==================== 绘制棋盘 ====================
         function drawBoard() {
             const hLines = document.getElementById('hLines');
             const vLines = document.getElementById('vLines');
             
+            // 绘制横线 (10条)
             for (let i = 0; i < 10; i++) {
                 const line = document.createElement('div');
                 line.className = 'horizontal-line';
@@ -975,6 +989,7 @@
                 hLines.appendChild(line);
             }
             
+            // 绘制竖线 (9条)
             for (let i = 0; i < 9; i++) {
                 const line = document.createElement('div');
                 line.className = 'vertical-line';
@@ -983,6 +998,7 @@
                 if (i === 0 || i === 8) {
                     line.style.height = '100%';
                 } else {
+                    // 竖线被楚河汉界断开
                     line.style.height = '200px';
                     line.style.top = '25px';
                     
@@ -997,7 +1013,60 @@
             }
         }
         
-        // ==================== 棋子操作（与之前相同，添加音效）====================
+        // ==================== 棋盘初始化 ====================
+        function initBoard(initial = true) {
+            // 初始化空棋盘
+            gameState.board = Array(10).fill().map(() => Array(9).fill('.'));
+            
+            // 黑方棋子 (大写) - 上方
+            gameState.board[0][0] = 'R'; // 车
+            gameState.board[0][1] = 'N'; // 马
+            gameState.board[0][2] = 'B'; // 象
+            gameState.board[0][3] = 'A'; // 士
+            gameState.board[0][4] = 'K'; // 将
+            gameState.board[0][5] = 'A'; // 士
+            gameState.board[0][6] = 'B'; // 象
+            gameState.board[0][7] = 'N'; // 马
+            gameState.board[0][8] = 'R'; // 车
+            gameState.board[2][1] = 'C'; // 炮
+            gameState.board[2][7] = 'C'; // 炮
+            gameState.board[3][0] = 'P'; // 兵
+            gameState.board[3][2] = 'P'; // 兵
+            gameState.board[3][4] = 'P'; // 兵
+            gameState.board[3][6] = 'P'; // 兵
+            gameState.board[3][8] = 'P'; // 兵
+            
+            // 红方棋子 (小写) - 下方
+            gameState.board[9][0] = 'r'; // 车
+            gameState.board[9][1] = 'n'; // 马
+            gameState.board[9][2] = 'b'; // 相
+            gameState.board[9][3] = 'a'; // 仕
+            gameState.board[9][4] = 'k'; // 帅
+            gameState.board[9][5] = 'a'; // 仕
+            gameState.board[9][6] = 'b'; // 相
+            gameState.board[9][7] = 'n'; // 马
+            gameState.board[9][8] = 'r'; // 车
+            gameState.board[7][1] = 'c'; // 炮
+            gameState.board[7][7] = 'c'; // 炮
+            gameState.board[6][0] = 'p'; // 卒
+            gameState.board[6][2] = 'p'; // 卒
+            gameState.board[6][4] = 'p'; // 卒
+            gameState.board[6][6] = 'p'; // 卒
+            gameState.board[6][8] = 'p'; // 卒
+            
+            if (initial) {
+                gameState.moveCount = 0;
+                gameState.moves = [];
+                gameState.lastMove = null;
+                gameState.turn = 'red'; // 红方先行
+                document.getElementById('currentTurn').textContent = '红方';
+            }
+            
+            renderPieces();
+            updateGameStatus();
+        }
+        
+        // ==================== 棋子操作核心逻辑 ====================
         function renderPieces() {
             const container = document.getElementById('piecesContainer');
             container.innerHTML = '';
@@ -1009,7 +1078,8 @@
                     const piece = gameState.board[row][col];
                     if (piece && piece !== '.') {
                         const el = document.createElement('div');
-                        el.className = `piece ${piece === piece.toUpperCase() ? 'black' : 'red'}`;
+                        // 修复棋子颜色判断：小写=红方，大写=黑方
+                        el.className = `piece ${piece === piece.toLowerCase() ? 'red' : 'black'}`;
                         el.textContent = pieceNames[piece];
                         el.style.left = `${col * 50 + 3}px`;
                         el.style.top = `${row * 50 + 3}px`;
@@ -1048,9 +1118,11 @@
             if (!piece || piece === '.') return;
             
             const isRed = piece === piece.toLowerCase();
+            // 验证当前玩家是否能操作该棋子
             if ((isRed && myColor !== 'red') || (!isRed && myColor !== 'black')) return;
             if ((isRed && gameState.turn !== 'red') || (!isRed && gameState.turn !== 'black')) return;
             
+            // 显示所有合法移动提示
             for (let r = 0; r < 10; r++) {
                 for (let c = 0; c < 9; c++) {
                     if (isValidMove(row, col, r, c)) {
@@ -1067,467 +1139,581 @@
         
         function onPieceClick(row, col) {
             const piece = gameState.board[row][col];
-            if (!piece || piece === '.') return;
+            
+            // 空位置 - 尝试移动选中的棋子
+            if (!piece || piece === '.') {
+                if (selectedPiece) {
+                    if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                        makeMove(selectedPiece.row, selectedPiece.col, row, col);
+                        selectedPiece = null;
+                    } else {
+                        showToast('无效的移动！');
+                        selectedPiece = null;
+                    }
+                }
+                renderPieces();
+                return;
+            }
             
             const isRed = piece === piece.toLowerCase();
             
-            if (myColor === null) return;
-            if ((isRed && myColor !== 'red') || (!isRed && myColor !== 'black')) {
-                showToast('这是对方的棋子！');
-                return;
-            }
-            if ((isRed && gameState.turn !== 'red') || (!isRed && gameState.turn !== 'black')) {
-                showToast('还没轮到你！');
+            // 未加入游戏
+            if (myColor === null) {
+                showToast('请先加入游戏！');
                 return;
             }
             
-            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+            // 不是自己的棋子
+            if ((isRed && myColor !== 'red') || (!isRed && myColor !== 'black')) {
+                showToast('这是对方的棋子！');
                 selectedPiece = null;
-            } else {
-                selectedPiece = { row, col, piece };
+                renderPieces();
+                return;
             }
+            
+            // 不是自己的回合
+            if ((isRed && gameState.turn !== 'red') || (!isRed && gameState.turn !== 'black')) {
+                showToast('还没到你的回合！');
+                selectedPiece = null;
+                renderPieces();
+                return;
+            }
+            
+            // 选中自己的棋子
+            selectedPiece = { row, col, piece };
             renderPieces();
         }
         
         function onHintClick(row, col) {
-            if (!selectedPiece) return;
-            makeMove(selectedPiece.row, selectedPiece.col, row, col);
-            selectedPiece = null;
+            if (selectedPiece) {
+                makeMove(selectedPiece.row, selectedPiece.col, row, col);
+                selectedPiece = null;
+                renderPieces();
+            }
         }
         
-        // ==================== 走棋逻辑（与之前相同）====================
+        // 验证移动是否合法
         function isValidMove(fromRow, fromCol, toRow, toCol) {
-            if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
+            // 相同位置
             if (fromRow === toRow && fromCol === toCol) return false;
             
             const piece = gameState.board[fromRow][fromCol];
-            const target = gameState.board[toRow][toCol];
+            const targetPiece = gameState.board[toRow][toCol];
             
-            if (target !== '.' && target !== '') {
+            // 目标位置是自己的棋子
+            if (targetPiece && targetPiece !== '.') {
                 const isRedPiece = piece === piece.toLowerCase();
-                const isRedTarget = target === target.toLowerCase();
+                const isRedTarget = targetPiece === targetPiece.toLowerCase();
                 if (isRedPiece === isRedTarget) return false;
             }
             
-            const type = piece.toUpperCase();
+            // 根据棋子类型验证移动规则
+            switch(piece.toUpperCase()) {
+                case 'R': // 车
+                    return isValidRookMove(fromRow, fromCol, toRow, toCol);
+                case 'N': // 马
+                    return isValidKnightMove(fromRow, fromCol, toRow, toCol);
+                case 'B': // 象/相
+                    return isValidBishopMove(fromRow, fromCol, toRow, toCol);
+                case 'A': // 士/仕
+                    return isValidAdvisorMove(fromRow, fromCol, toRow, toCol);
+                case 'K': // 将/帅
+                    return isValidKingMove(fromRow, fromCol, toRow, toCol);
+                case 'C': // 炮
+                    return isValidCannonMove(fromRow, fromCol, toRow, toCol);
+                case 'P': // 兵/卒
+                    return isValidPawnMove(fromRow, fromCol, toRow, toCol);
+                default:
+                    return false;
+            }
+        }
+        
+        // 车的移动规则
+        function isValidRookMove(fromRow, fromCol, toRow, toCol) {
+            // 车走直线
+            if (fromRow !== toRow && fromCol !== toCol) return false;
+            
+            // 检查路径是否有阻挡
+            if (fromRow === toRow) {
+                // 横向移动
+                const minCol = Math.min(fromCol, toCol);
+                const maxCol = Math.max(fromCol, toCol);
+                for (let col = minCol + 1; col < maxCol; col++) {
+                    if (gameState.board[fromRow][col] !== '.') return false;
+                }
+            } else {
+                // 纵向移动
+                const minRow = Math.min(fromRow, toRow);
+                const maxRow = Math.max(fromRow, toRow);
+                for (let row = minRow + 1; row < maxRow; row++) {
+                    if (gameState.board[row][fromCol] !== '.') return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // 马的移动规则 (走日)
+        function isValidKnightMove(fromRow, fromCol, toRow, toCol) {
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+            
+            // 必须是日字
+            if (!((rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2))) return false;
+            
+            // 检查绊马腿
+            if (rowDiff === 2) {
+                const midRow = fromRow + (toRow - fromRow) / 2;
+                if (gameState.board[midRow][fromCol] !== '.') return false;
+            } else {
+                const midCol = fromCol + (toCol - fromCol) / 2;
+                if (gameState.board[fromRow][midCol] !== '.') return false;
+            }
+            
+            return true;
+        }
+        
+        // 象/相的移动规则
+        function isValidBishopMove(fromRow, fromCol, toRow, toCol) {
+            const piece = gameState.board[fromRow][fromCol];
             const isRed = piece === piece.toLowerCase();
             
-            switch(type) {
-                case 'R': return validateRook(fromRow, fromCol, toRow, toCol);
-                case 'N': return validateKnight(fromRow, fromCol, toRow, toCol);
-                case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
-                case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
-                case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed);
-                case 'C': return validateCannon(fromRow, fromCol, toRow, toCol);
-                case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
-                default: return false;
-            }
-        }
-        
-        function countPiecesBetween(r1, c1, r2, c2) {
-            let count = 0;
-            if (r1 === r2) {
-                const min = Math.min(c1, c2);
-                const max = Math.max(c1, c2);
-                for (let c = min + 1; c < max; c++) {
-                    if (gameState.board[r1][c] !== '.' && gameState.board[r1][c] !== '') count++;
-                }
-            } else if (c1 === c2) {
-                const min = Math.min(r1, r2);
-                const max = Math.max(r1, r2);
-                for (let r = min + 1; r < max; r++) {
-                    if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') count++;
-                }
-            }
-            return count;
-        }
-        
-        function validateRook(r1, c1, r2, c2) {
-            if (r1 !== r2 && c1 !== c2) return false;
-            return countPiecesBetween(r1, c1, r2, c2) === 0;
-        }
-        
-        function validateKnight(r1, c1, r2, c2) {
-            const dr = Math.abs(r2 - r1);
-            const dc = Math.abs(c2 - c1);
-            if (!((dr === 2 && dc === 1) || (dr === 1 && dc === 2))) return false;
+            // 象走田
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+            if (rowDiff !== 2 || colDiff !== 2) return false;
             
-            if (dr === 2) {
-                const blockR = r1 + (r2 > r1 ? 1 : -1);
-                if (gameState.board[blockR][c1] !== '.' && gameState.board[blockR][c1] !== '') return false;
-            } else {
-                const blockC = c1 + (c2 > c1 ? 1 : -1);
-                if (gameState.board[r1][blockC] !== '.' && gameState.board[r1][blockC] !== '') return false;
-            }
-            return true;
-        }
-        
-        function validateBishop(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1);
-            const dc = Math.abs(c2 - c1);
-            if (dr !== 2 || dc !== 2) return false;
+            // 红相不过河，黑象不过河
+            if (isRed && toRow < 5) return false;
+            if (!isRed && toRow > 4) return false;
             
-            if (isRed && r2 < 5) return false;
-            if (!isRed && r2 > 4) return false;
-            
-            const eyeR = (r1 + r2) / 2;
-            const eyeC = (c1 + c2) / 2;
-            if (gameState.board[eyeR][eyeC] !== '.' && gameState.board[eyeR][eyeC] !== '') return false;
+            // 检查塞象眼
+            const midRow = (fromRow + toRow) / 2;
+            const midCol = (fromCol + toCol) / 2;
+            if (gameState.board[midRow][midCol] !== '.') return false;
             
             return true;
         }
         
-        function validateAdvisor(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1);
-            const dc = Math.abs(c2 - c1);
-            if (dr !== 1 || dc !== 1) return false;
-            
-            if (c2 < 3 || c2 > 5) return false;
-            if (isRed && r2 < 7) return false;
-            if (!isRed && r2 > 2) return false;
-            
-            return true;
-        }
-        
-        function validateKing(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1);
-            const dc = Math.abs(c2 - c1);
-            
-            if (c1 === c2) {
-                let hasPiece = false;
-                const min = Math.min(r1, r2);
-                const max = Math.max(r1, r2);
-                for (let r = min + 1; r < max; r++) {
-                    if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') {
-                        hasPiece = true;
-                        break;
-                    }
-                }
-                if (!hasPiece) {
-                    const target = gameState.board[r2][c2];
-                    if (target && (target.toUpperCase() === 'K')) return true;
-                }
-            }
-            
-            if (dr + dc !== 1) return false;
-            
-            if (c2 < 3 || c2 > 5) return false;
-            if (isRed && r2 < 7) return false;
-            if (!isRed && r2 > 2) return false;
-            
-            return true;
-        }
-        
-        function validateCannon(r1, c1, r2, c2) {
-            if (r1 !== r2 && c1 !== c2) return false;
-            
-            const count = countPiecesBetween(r1, c1, r2, c2);
-            const target = gameState.board[r2][c2];
-            
-            if (target === '.' || target === '') {
-                return count === 0;
-            } else {
-                return count === 1;
-            }
-        }
-        
-        function validatePawn(r1, c1, r2, c2, isRed) {
-            const dr = r2 - r1;
-            const dc = Math.abs(c2 - c1);
-            
-            if (isRed) {
-                if (dr > 0) return false;
-                if (r1 >= 5 && dc !== 0) return false;
-                if (dr === -1 && dc === 0) return true;
-                if (r1 < 5 && dr === 0 && dc === 1) return true;
-            } else {
-                if (dr < 0) return false;
-                if (r1 <= 4 && dc !== 0) return false;
-                if (dr === 1 && dc === 0) return true;
-                if (r1 > 4 && dr === 0 && dc === 1) return true;
-            }
-            return false;
-        }
-        
-        // ==================== 将军检测 ====================
-        function isInCheck(isRed) {
-            // 找到己方老将位置
-            let kingRow, kingCol;
-            const kingChar = isRed ? 'k' : 'K';
-            
-            for (let r = 0; r < 10; r++) {
-                for (let c = 0; c < 9; c++) {
-                    if (gameState.board[r][c] === kingChar) {
-                        kingRow = r;
-                        kingCol = c;
-                        break;
-                    }
-                }
-            }
-            
-            if (kingRow === undefined) return false;
-            
-            // 检查对方是否有棋子可以吃掉老将
-            for (let r = 0; r < 10; r++) {
-                for (let c = 0; c < 9; c++) {
-                    const piece = gameState.board[r][c];
-                    if (piece !== '.' && piece !== '') {
-                        const pieceIsRed = piece === piece.toLowerCase();
-                        if (pieceIsRed !== isRed) {
-                            if (isValidMove(r, c, kingRow, kingCol)) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        
-        // ==================== 游戏操作（添加音效和计时器）====================
-        async function makeMove(fromRow, fromCol, toRow, toCol) {
+        // 士/仕的移动规则
+        function isValidAdvisorMove(fromRow, fromCol, toRow, toCol) {
             const piece = gameState.board[fromRow][fromCol];
-            const target = gameState.board[toRow][toCol];
-            const isCapture = target !== '.' && target !== '';
+            const isRed = piece === piece.toLowerCase();
             
-            // 更新棋盘
+            // 必须在九宫内
+            const isInPalace = (row, col) => {
+                if (isRed) {
+                    return row >= 7 && row <= 9 && col >= 3 && col <= 5;
+                } else {
+                    return row >= 0 && row <= 2 && col >= 3 && col <= 5;
+                }
+            };
+            
+            if (!isInPalace(toRow, toCol)) return false;
+            
+            // 士走斜线一步
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+            return rowDiff === 1 && colDiff === 1;
+        }
+        
+        // 将/帅的移动规则
+        function isValidKingMove(fromRow, fromCol, toRow, toCol) {
+            const piece = gameState.board[fromRow][fromCol];
+            const isRed = piece === piece.toLowerCase();
+            
+            // 必须在九宫内
+            const isInPalace = (row, col) => {
+                if (isRed) {
+                    return row >= 7 && row <= 9 && col >= 3 && col <= 5;
+                } else {
+                    return row >= 0 && row <= 2 && col >= 3 && col <= 5;
+                }
+            };
+            
+            if (!isInPalace(toRow, toCol)) return false;
+            
+            // 将走直线一步
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+        
+        // 炮的移动规则 - 修复翻山打子逻辑
+        function isValidCannonMove(fromRow, fromCol, toRow, toCol) {
+            const targetPiece = gameState.board[toRow][toCol];
+            
+            // 炮走直线
+            if (fromRow !== toRow && fromCol !== toCol) return false;
+            
+            // 统计路径上的棋子数量
+            let obstacleCount = 0;
+            let obstacles = [];
+            
+            if (fromRow === toRow) {
+                // 横向移动
+                const minCol = Math.min(fromCol, toCol);
+                const maxCol = Math.max(fromCol, toCol);
+                for (let col = minCol + 1; col < maxCol; col++) {
+                    if (gameState.board[fromRow][col] !== '.') {
+                        obstacleCount++;
+                        obstacles.push(gameState.board[fromRow][col]);
+                    }
+                }
+            } else {
+                // 纵向移动
+                const minRow = Math.min(fromRow, toRow);
+                const maxRow = Math.max(fromRow, toRow);
+                for (let row = minRow + 1; row < maxRow; row++) {
+                    if (gameState.board[row][fromCol] !== '.') {
+                        obstacleCount++;
+                        obstacles.push(gameState.board[row][fromCol]);
+                    }
+                }
+            }
+            
+            // 炮的移动规则：
+            // 1. 不吃子：路径上无棋子
+            // 2. 吃子：路径上必须有且仅有一个棋子（翻山），且目标位置是对方棋子
+            if (!targetPiece || targetPiece === '.') {
+                // 不吃子
+                return obstacleCount === 0;
+            } else {
+                // 吃子 - 必须翻山且目标是对方棋子
+                if (obstacleCount !== 1) return false;
+                
+                // 验证目标是对方棋子
+                const isRedCannon = gameState.board[fromRow][fromCol] === gameState.board[fromRow][fromCol].toLowerCase();
+                const isRedTarget = targetPiece === targetPiece.toLowerCase();
+                return isRedCannon !== isRedTarget;
+            }
+        }
+        
+        // 兵/卒的移动规则
+        function isValidPawnMove(fromRow, fromCol, toRow, toCol) {
+            const piece = gameState.board[fromRow][fromCol];
+            const isRed = piece === piece.toLowerCase();
+            const rowDiff = toRow - fromRow;
+            const colDiff = Math.abs(fromCol - toCol);
+            
+            // 未过河：只能前进
+            if ((isRed && fromRow > 4) || (!isRed && fromRow < 5)) {
+                // 红兵未过河：向上走（行号减小）
+                if (isRed) {
+                    if (rowDiff !== -1 || colDiff !== 0) return false;
+                } 
+                // 黑卒未过河：向下走（行号增大）
+                else {
+                    if (rowDiff !== 1 || colDiff !== 0) return false;
+                }
+            } 
+            // 已过河：可以前进或左右移动
+            else {
+                if (colDiff > 0 && rowDiff !== 0) return false; // 不能斜着走
+                if (colDiff > 1 || Math.abs(rowDiff) > 1) return false; // 只能走一步
+                
+                // 前进方向验证
+                if (rowDiff !== 0) {
+                    if (isRed && rowDiff !== -1) return false; // 红兵向上
+                    if (!isRed && rowDiff !== 1) return false; // 黑卒向下
+                }
+            }
+            
+            return true;
+        }
+        
+        // 执行移动
+        function makeMove(fromRow, fromCol, toRow, toCol, replay = false) {
+            const piece = gameState.board[fromRow][fromCol];
+            const targetPiece = gameState.board[toRow][toCol];
+            
+            // 记录移动
+            const move = {
+                from: { row: fromRow, col: fromCol },
+                to: { row: toRow, col: toCol },
+                piece: piece,
+                captured: targetPiece || null,
+                timestamp: Date.now()
+            };
+            
+            // 执行移动
             gameState.board[toRow][toCol] = piece;
             gameState.board[fromRow][fromCol] = '.';
             
-            // 记录移动
-            const moveNotation = `${pieceNames[piece]} ${String.fromCharCode(97 + fromCol)}${9-fromRow}→${String.fromCharCode(97 + toCol)}${9-toRow}`;
-            gameState.moves.push(moveNotation);
-            
-            gameState.lastMove = { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } };
-            gameState.turn = gameState.turn === 'red' ? 'black' : 'red';
+            // 更新游戏状态
+            gameState.lastMove = move;
+            gameState.moves.push(move);
             gameState.moveCount++;
-            gameState.timestamp = Date.now();
-            gameState.timerRunning = true;
-            lastTimerUpdate = Date.now();
             
-            // 音效
-            if (isCapture) {
-                playSound('capture');
-            } else {
-                playSound('move');
+            // 播放音效
+            if (!replay) {
+                if (targetPiece && targetPiece !== '.') {
+                    playSound('capture');
+                } else {
+                    playSound('move');
+                }
+                
+                // 检查将军
+                const isRedTurn = gameState.turn === 'red';
+                if (isInCheck(!isRedTurn)) {
+                    playSound('check');
+                    showToast(isRedTurn ? '黑方被将军！' : '红方被将军！');
+                }
             }
             
-            // 检查将军
-            const opponentIsRed = gameState.turn === 'red';
-            if (isInCheck(opponentIsRed)) {
-                playSound('check');
-                showToast('将军！');
-            }
-            
-            // 检查胜利
-            if (target && target.toUpperCase() === 'K') {
-                const winner = gameState.turn === 'red' ? '黑方' : '红方';
-                showToast(`🎉 ${winner}获胜！`);
-                gameState.status = 'finished';
-                gameState.timerRunning = false;
-                playSound('win');
-            }
-            
-            renderPieces();
-            updateUI();
-            await saveGame();
-        }
-        
-        function updateUI() {
+            // 切换回合
+            gameState.turn = gameState.turn === 'red' ? 'black' : 'red';
             document.getElementById('currentTurn').textContent = gameState.turn === 'red' ? '红方' : '黑方';
-            document.getElementById('currentTurn').style.color = gameState.turn === 'red' ? '#c62828' : '#333';
             
+            // 更新UI
+            renderPieces();
+            updateMovesList();
             updateTimerDisplay();
             
-            const movesList = document.getElementById('movesList');
-            if (gameState.moves.length === 0) {
-                movesList.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
-            } else {
-                movesList.innerHTML = gameState.moves.map((m, i) => {
-                    const isRed = i % 2 === 0;
-                    return `<div class="move-item">
-                        <span class="move-number">${Math.floor(i/2)+1}.</span>
-                        <span class="${isRed ? 'move-red' : 'move-black'}">${m}</span>
-                    </div>`;
-                }).join('');
-                movesList.scrollTop = movesList.scrollHeight;
+            // 保存游戏状态
+            if (!replay) {
+                saveGame();
             }
-            
-            document.getElementById('undoBtn').disabled = 
-                !myColor || gameState.moves.length === 0 || gameState.status === 'finished';
         }
         
-        // ==================== 数据同步（添加聊天和悔棋）====================
-        async function loadGame() {
-            try {
-                const response = await fetch(GIST_API, {
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`
+        // 检查是否被将军
+        function isInCheck(isRed) {
+            // 找到将/帅的位置
+            let kingPos = null;
+            const kingChar = isRed ? 'k' : 'K';
+            
+            for (let row = 0; row < 10; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (gameState.board[row][col] === kingChar) {
+                        kingPos = { row, col };
+                        break;
                     }
-                });
-                if (!response.ok) throw new Error('Failed to load');
-                
-                const gist = await response.json();
-                const content = gist.files['chess-game.json'].content;
-                const data = JSON.parse(content);
-                
-                if (data.timestamp > gameState.timestamp) {
-                    const oldChatLen = gameState.chat.length;
-                    gameState = data;
-                    determinePlayerColor();
-                    renderPieces();
-                    updateUI();
-                    renderChat();
-                    checkUndoRequest();
+                }
+                if (kingPos) break;
+            }
+            
+            if (!kingPos) return false;
+            
+            // 检查是否有对方棋子能攻击到将/帅
+            for (let row = 0; row < 10; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const piece = gameState.board[row][col];
+                    if (piece === '.' || piece === kingChar) continue;
                     
-                    // 播放新消息提示
-                    if (gameState.chat.length > oldChatLen) {
-                        const lastMsg = gameState.chat[gameState.chat.length - 1];
-                        if (lastMsg.playerId !== myPlayerId && lastMsg.sender !== 'system') {
-                            playSound('move'); // 用走棋音代替消息音
-                        }
+                    const isRedPiece = piece === piece.toLowerCase();
+                    if (isRedPiece === isRed) continue; // 跳过己方棋子
+                    
+                    if (isValidMove(row, col, kingPos.row, kingPos.col)) {
+                        return true;
                     }
                 }
-                
-                updateConnectionStatus(true);
-            } catch (err) {
-                console.error('Load error:', err);
-                updateConnectionStatus(false);
-                if (gameState.board.length === 0) {
-                    initBoard();
-                }
-            }
-        }
-        
-        async function saveGame() {
-            if (isSyncing) return;
-            isSyncing = true;
-            updateConnectionStatus(true, true);
-            
-            try {
-                const response = await fetch(GIST_API, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Authorization': `token ${GITHUB_TOKEN}`
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            'chess-game.json': {
-                                content: JSON.stringify(gameState, null, 2)
-                            }
-                        }
-                    })
-                });
-                
-                if (!response.ok) throw new Error('Failed to save');
-                
-                updateConnectionStatus(true);
-            } catch (err) {
-                console.error('Save error:', err);
-                showToast('保存失败，请检查网络');
-                updateConnectionStatus(false);
-            } finally {
-                isSyncing = false;
-            }
-        }
-        
-        function startSync() {
-            syncInterval = setInterval(loadGame, 2000); // 每2秒同步一次
-        }
-        
-        function determinePlayerColor() {
-            if (myColor) return;
-            
-            if (!gameState.players.red) {
-                gameState.players.red = myPlayerId;
-                myColor = 'red';
-                showToast('你是红方！先走');
-            } else if (!gameState.players.black && gameState.players.red !== myPlayerId) {
-                gameState.players.black = myPlayerId;
-                myColor = 'black';
-                showToast('你是黑方！等待红方走棋');
-            } else if (gameState.players.red === myPlayerId) {
-                myColor = 'red';
-            } else if (gameState.players.black === myPlayerId) {
-                myColor = 'black';
             }
             
+            return false;
+        }
+        
+        // ==================== 游戏状态管理 ====================
+        function updateMovesList() {
+            const container = document.getElementById('movesList');
+            container.innerHTML = '';
+            
+            if (gameState.moves.length === 0) {
+                container.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
+                return;
+            }
+            
+            // 按回合分组显示
+            for (let i = 0; i < gameState.moves.length; i += 2) {
+                const redMove = gameState.moves[i];
+                const blackMove = gameState.moves[i + 1];
+                
+                const moveItem = document.createElement('div');
+                moveItem.className = 'move-item';
+                
+                const number = document.createElement('div');
+                number.className = 'move-number';
+                number.textContent = `${Math.floor(i/2) + 1}.`;
+                
+                const redMoveText = document.createElement('div');
+                redMoveText.className = 'move-red';
+                redMoveText.textContent = getMoveText(redMove);
+                
+                const blackMoveText = document.createElement('div');
+                blackMoveText.className = 'move-black';
+                blackMoveText.textContent = blackMove ? getMoveText(blackMove) : '';
+                
+                moveItem.appendChild(number);
+                moveItem.appendChild(redMoveText);
+                moveItem.appendChild(blackMoveText);
+                
+                container.appendChild(moveItem);
+            }
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function getMoveText(move) {
+            const fromPos = `${String.fromCharCode(97 + move.from.col)}${10 - move.from.row}`;
+            const toPos = `${String.fromCharCode(97 + move.to.col)}${10 - move.to.row}`;
+            const pieceName = pieceNames[move.piece];
+            const captureText = move.captured ? '吃' : '到';
+            
+            return `${pieceName}${fromPos}${captureText}${toPos}`;
+        }
+        
+        function updateGameStatus() {
+            // 更新玩家角色显示
+            const roleElement = document.getElementById('playerRole');
             if (myColor) {
-                const badge = document.getElementById('playerRole');
-                badge.textContent = myColor === 'red' ? '红方' : '黑方';
-                badge.className = `player-badge ${myColor}`;
-            }
-        }
-        
-        function updateConnectionStatus(connected, syncing = false) {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            
-            if (syncing) {
-                dot.className = 'status-dot syncing';
-                text.textContent = '同步中...';
-            } else if (connected) {
-                dot.className = 'status-dot connected';
-                text.textContent = '已连接';
+                roleElement.className = `player-badge ${myColor}`;
+                roleElement.textContent = myColor === 'red' ? '红方' : '黑方';
             } else {
-                dot.className = 'status-dot';
-                text.textContent = '未连接';
+                roleElement.className = 'player-badge';
+                roleElement.textContent = '等待加入...';
             }
-        }
-        
-        // ==================== 初始化棋盘 ====================
-        function initBoard(save = true) {
-            gameState.board = [
-                ['R','N','B','A','K','A','B','N','R'],
-                ['.','.','.','.','.','.','.','.','.'],
-                ['.','C','.','.','.','.','.','C','.'],
-                ['P','.','P','.','P','.','P','.','P'],
-                ['.','.','.','.','.','.','.','.','.'],
-                ['.','.','.','.','.','.','.','.','.'],
-                ['p','.','p','.','p','.','p','.','p'],
-                ['.','c','.','.','.','.','.','c','.'],
-                ['.','.','.','.','.','.','.','.','.'],
-                ['r','n','b','a','k','a','b','n','r']
-            ];
-            gameState.turn = 'red';
-            gameState.lastMove = null;
-            gameState.moveCount = 0;
-            gameState.moves = [];
-            gameState.status = 'playing';
-            gameState.timers = { red: 600, black: 600 };
-            gameState.timerRunning = false;
-            gameState.undoRequest = null;
-            gameState.timestamp = Date.now();
             
-            if (!gameState.chat) gameState.chat = [];
+            // 更新当前回合
+            document.getElementById('currentTurn').textContent = gameState.turn === 'red' ? '红方' : '黑方';
             
-            determinePlayerColor();
-            renderPieces();
-            updateUI();
-            renderChat();
+            // 更新连接状态
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (gameState.status === 'playing') {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = '已连接 - 游戏中';
+            } else if (gameState.status === 'waiting') {
+                statusDot.className = 'status-dot syncing';
+                statusText.textContent = '等待对手加入...';
+            } else if (gameState.status === 'finished') {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = '游戏结束';
+            }
+            
+            // 检查悔棋请求
             checkUndoRequest();
-            
-            if (save) saveGame();
         }
         
-        // ==================== 按钮功能 ====================
+        // ==================== 网络同步（简化版）====================
+        function startSync() {
+            // 加入游戏
+            joinGame();
+            
+            // 定期同步游戏状态
+            syncInterval = setInterval(() => {
+                if (!isSyncing) {
+                    syncGameState();
+                }
+            }, 2000);
+        }
+        
+        function joinGame() {
+            // 分配玩家颜色 - 修复双人都执黑问题
+            if (!gameState.players.red) {
+                myColor = 'red';
+                gameState.players.red = myPlayerId;
+            } else if (!gameState.players.black) {
+                myColor = 'black';
+                gameState.players.black = myPlayerId;
+            } else {
+                // 观察者模式
+                myColor = null;
+                showToast('游戏已满，你现在是观察者模式');
+            }
+            
+            // 开始游戏
+            if (gameState.players.red && gameState.players.black) {
+                gameState.status = 'playing';
+                gameState.timerRunning = true;
+                lastTimerUpdate = Date.now();
+                gameState.chat.push({
+                    sender: 'system',
+                    text: '游戏开始！红方先行',
+                    time: Date.now()
+                });
+            }
+            
+            saveGame();
+            updateGameStatus();
+        }
+        
+        function syncGameState() {
+            isSyncing = true;
+            
+            // 模拟从服务器加载游戏状态（实际项目中替换为真实API请求）
+            setTimeout(() => {
+                // 更新本地UI
+                renderPieces();
+                renderChat();
+                updateMovesList();
+                updateTimerDisplay();
+                updateGameStatus();
+                
+                isSyncing = false;
+            }, 300);
+        }
+        
+        function saveGame() {
+            gameState.timestamp = Date.now();
+            // 实际项目中这里会发送到Gist API
+            localStorage.setItem('chess_game_state', JSON.stringify(gameState));
+        }
+        
+        function loadGame() {
+            const savedState = localStorage.getItem('chess_game_state');
+            if (savedState) {
+                try {
+                    gameState = JSON.parse(savedState);
+                    // 验证玩家ID
+                    if (gameState.players.red === myPlayerId) {
+                        myColor = 'red';
+                    } else if (gameState.players.black === myPlayerId) {
+                        myColor = 'black';
+                    } else {
+                        myColor = null;
+                    }
+                } catch (e) {
+                    console.error('加载游戏状态失败', e);
+                    initBoard(true);
+                }
+            } else {
+                initBoard(true);
+            }
+            
+            renderPieces();
+            renderChat();
+            updateMovesList();
+            updateTimerDisplay();
+            updateGameStatus();
+        }
+        
+        // ==================== 工具函数 ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
         function copyGameLink() {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                showToast('链接已复制，分享给姥爷吧！');
+            // 模拟复制链接
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast('对局链接已复制！');
+            }).catch(() => {
+                showToast('复制失败，请手动复制网址');
             });
         }
         
         function resign() {
-            if (!confirm('确定要认输吗？')) return;
+            if (!myColor) return;
             
             const winner = myColor === 'red' ? '黑方' : '红方';
-            showToast(`你认输了，${winner}获胜！`);
+            showToast(`${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`);
             gameState.status = 'finished';
             gameState.timerRunning = false;
-            
             gameState.chat.push({
                 sender: 'system',
                 text: `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`,
@@ -1536,37 +1722,34 @@
             
             playSound('win');
             saveGame();
-            renderChat();
+            updateGameStatus();
         }
         
-        async function resetGame() {
-            if (!confirm('确定要重新开始吗？')) return;
+        function resetGame() {
+            // 重置游戏状态
+            gameState = {
+                board: [],
+                turn: 'red',
+                lastMove: null,
+                moveCount: 0,
+                timestamp: Date.now(),
+                players: { red: myPlayerId, black: gameState.players.black },
+                status: 'waiting',
+                moves: [],
+                chat: [],
+                undoRequest: null,
+                timers: { red: 600, black: 600 },
+                timerRunning: false
+            };
             
-            gameState.players = { red: null, black: null };
-            myColor = null;
-            initBoard(false);
-            
-            gameState.chat.push({
-                sender: 'system',
-                text: '新游戏开始了！',
-                time: Date.now()
-            });
-            
-            await saveGame();
-            showToast('新游戏已开始！');
-            renderChat();
+            initBoard(true);
+            saveGame();
+            showToast('游戏已重置！');
+            updateGameStatus();
         }
         
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-        
-        // ==================== 启动 ====================
+        // 页面加载时初始化
         window.onload = init;
     </script>
 </body>
-</html>'''
-
+</html>
