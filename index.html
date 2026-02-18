@@ -222,151 +222,160 @@
 
     <script>
         // ==================== 配置 ====================
-        // 默认使用免费的 Gemini API（可能有限速）
-        const DEFAULT_API_KEY = ''; // 用户需要自己输入或使用免费额度
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        
-        // 备用：使用本地简单AI（不调用API）
-        let useLocalAI = false;
-        
-        // ==================== 游戏状态 ====================
-        let gameState = {
-            board: [],
-            turn: 'red',
-            lastMove: null,
-            moveCount: 0,
-            status: 'waiting',
-            moves: [],
-            difficulty: 'easy'
-        };
-        
-        let selectedPiece = null;
-        let soundEnabled = true;
-        let hintEnabled = true;
-        let isAIThinking = false;
-        let moveHistory = [];
-        
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const pieceNames = {
-            'R': '车', 'N': '马', 'B': '象', 'A': '士', 'K': '将', 'C': '炮', 'P': '兵',
-            'r': '车', 'n': '马', 'b': '相', 'a': '仕', 'k': '帅', 'c': '炮', 'p': '卒'
-        };
-        
-        // ==================== 音效 ====================
-        function playSound(type) {
-            if (!soundEnabled) return;
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            switch(type) {
-                case 'move': oscillator.frequency.value = 400; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.1); break;
-                case 'capture': oscillator.frequency.value = 200; gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.2); break;
-                case 'check': oscillator.frequency.value = 800; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.3); break;
-                case 'win': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.5); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.5); break;
-                case 'select': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.05); break;
-            }
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+// ==================== 游戏状态 ====================
+let gameState = {
+    board: [],
+    turn: 'red',
+    lastMove: null,
+    moveCount: 0,
+    status: 'waiting',
+    moves: [],
+    difficulty: 'easy'
+};
+
+let selectedPiece = null;
+let soundEnabled = true;
+let isAIThinking = false;
+let moveHistory = [];
+let gameStarted = false;
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const pieceNames = {
+    'R': '车', 'N': '马', 'B': '象', 'A': '士', 'K': '将', 'C': '炮', 'P': '兵',
+    'r': '车', 'n': '马', 'b': '相', 'a': '仕', 'k': '帅', 'c': '炮', 'p': '卒'
+};
+
+const pieceValues = {
+    'p': 10, 'c': 45, 'r': 90, 'n': 40, 'b': 20, 'a': 20, 'k': 1000,
+    'P': 10, 'C': 45, 'R': 90, 'N': 40, 'B': 20, 'A': 20, 'K': 1000
+};
+
+// ==================== 音效 ====================
+function playSound(type) {
+    if (!soundEnabled) return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    switch(type) {
+        case 'move': oscillator.frequency.value = 400; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.1); break;
+        case 'capture': oscillator.frequency.value = 200; gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.2); break;
+        case 'check': oscillator.frequency.value = 800; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.3); break;
+        case 'win': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.5); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.5); break;
+        case 'select': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.05); break;
+    }
+}
+
+function toggleSound() { soundEnabled = !soundEnabled; document.getElementById('soundToggle').classList.toggle('active'); showToast(soundEnabled ? '音效已开启' : '音效已关闭'); }
+
+function setDifficulty(level) {
+    gameState.difficulty = level;
+    document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
+    event.target.classList.add('selected');
+    showToast(`难度设置为: ${level === 'easy' ? '入门' : level === 'medium' ? '中级' : '高级'}`);
+}
+
+// ==================== 初始化 ====================
+function init() {
+    drawBoard();
+    initBoard();
+}
+
+function drawBoard() {
+    const hLines = document.getElementById('hLines'), vLines = document.getElementById('vLines');
+    for (let i = 0; i < 10; i++) { const line = document.createElement('div'); line.className = 'horizontal-line'; line.style.top = `${i * 50 + 25}px`; hLines.appendChild(line); }
+    for (let i = 0; i < 9; i++) {
+        if (i === 0 || i === 8) { const line = document.createElement('div'); line.className = 'vertical-line'; line.style.left = `${i * 50 + 25}px`; line.style.top = '25px'; line.style.height = '450px'; vLines.appendChild(line); }
+        else {
+            const line1 = document.createElement('div'); line1.className = 'vertical-line'; line1.style.left = `${i * 50 + 25}px`; line1.style.top = '25px'; line1.style.height = '200px'; vLines.appendChild(line1);
+            const line2 = document.createElement('div'); line2.className = 'vertical-line'; line2.style.left = `${i * 50 + 25}px`; line2.style.top = '275px'; line2.style.height = '200px'; vLines.appendChild(line2);
         }
-        
-        function toggleSound() { soundEnabled = !soundEnabled; document.getElementById('soundToggle').classList.toggle('active'); showToast(soundEnabled ? '音效已开启' : '音效已关闭'); }
-        function toggleHint() { hintEnabled = !hintEnabled; document.getElementById('hintToggle').classList.toggle('active'); showToast(hintEnabled ? 'AI提示已开启' : 'AI提示已关闭'); }
-        
-        function setDifficulty(level) {
-            gameState.difficulty = level;
-            document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
-            event.target.classList.add('selected');
-            showToast(`难度设置为: ${level === 'easy' ? '入门' : level === 'medium' ? '中级' : '高级'}`);
-        }
-        
-        // ==================== 初始化 ====================
-        function init() {
-            drawBoard();
-            initBoard();
-        }
-        
-        function drawBoard() {
-            const hLines = document.getElementById('hLines'), vLines = document.getElementById('vLines');
-            for (let i = 0; i < 10; i++) { const line = document.createElement('div'); line.className = 'horizontal-line'; line.style.top = `${i * 50 + 25}px`; hLines.appendChild(line); }
-            for (let i = 0; i < 9; i++) {
-                if (i === 0 || i === 8) { const line = document.createElement('div'); line.className = 'vertical-line'; line.style.left = `${i * 50 + 25}px`; line.style.top = '25px'; line.style.height = '450px'; vLines.appendChild(line); }
-                else {
-                    const line1 = document.createElement('div'); line1.className = 'vertical-line'; line1.style.left = `${i * 50 + 25}px`; line1.style.top = '25px'; line1.style.height = '200px'; vLines.appendChild(line1);
-                    const line2 = document.createElement('div'); line2.className = 'vertical-line'; line2.style.left = `${i * 50 + 25}px`; line2.style.top = '275px'; line2.style.height = '200px'; vLines.appendChild(line2);
-                }
-            }
-        }
-        
-        function initBoard() {
-            gameState.board = [['R','N','B','A','K','A','B','N','R'],['.','.','.','.','.','.','.','.','.'],['.','C','.','.','.','.','.','C','.'],['P','.','P','.','P','.','P','.','P'],['.','.','.','.','.','.','.','.','.'],['.','.','.','.','.','.','.','.','.'],['p','.','p','.','p','.','p','.','p'],['.','c','.','.','.','.','.','c','.'],['.','.','.','.','.','.','.','.','.'],['r','n','b','a','k','a','b','n','r']];
-            gameState.turn = 'red';
-            gameState.lastMove = null;
-            gameState.moveCount = 0;
-            gameState.moves = [];
-            gameState.status = 'playing';
-            moveHistory = [];
-            selectedPiece = null;
-            isAIThinking = false;
-            updateAIStatus('等待开始...');
-            renderPieces();
-            updateUI();
-            showToast('游戏开始！红方先行');
-        }
-        
-        function startGame() {
-            initBoard();
-        }
-        
-        // ==================== 棋子操作 ====================
-        function renderPieces() {
-            const container = document.getElementById('piecesContainer');
-            container.innerHTML = '';
-            for (let row = 0; row < 10; row++) {
-                for (let col = 0; col < 9; col++) {
-                    const piece = gameState.board[row][col];
-                    if (piece && piece !== '.') {
-                        const el = document.createElement('div');
-                        el.className = `piece ${piece === piece.toUpperCase() ? 'black' : 'red'}`;
-                        if (isAIThinking && piece === piece.toUpperCase()) el.classList.add('ai-thinking');
-                        el.textContent = pieceNames[piece];
-                        el.style.left = `${col * 50 + 3}px`;
-                        el.style.top = `${row * 50 + 3}px`;
-                        if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) el.classList.add('selected');
-                        if (gameState.lastMove) {
-                            const from = gameState.lastMove.from, to = gameState.lastMove.to;
-                            if ((row === from.row && col === from.col) || (row === to.row && col === to.col)) el.classList.add('last-move');
-                        }
-                        if (piece.toUpperCase() === 'K' && isInCheck(piece === piece.toLowerCase())) el.classList.add('check');
-                        el.onclick = () => onPieceClick(row, col);
-                        container.appendChild(el);
-                    }
-                }
-            }
-            if (selectedPiece && !isAIThinking) showMoveHints(selectedPiece.row, selectedPiece.col);
-        }
-        
-        function showMoveHints(row, col) {
-            const container = document.getElementById('piecesContainer');
-            container.querySelectorAll('.move-hint').forEach(h => h.remove());
+    }
+}
+
+function initBoard() {
+    gameState.board = [['R','N','B','A','K','A','B','N','R'],['.','.','.','.','.','.','.','.','.'],['.','C','.','.','.','.','.','C','.'],['P','.','P','.','P','.','P','.','P'],['.','.','.','.','.','.','.','.','.'],['.','.','.','.','.','.','.','.','.'],['p','.','p','.','p','.','p','.','p'],['.','c','.','.','.','.','.','c','.'],['.','.','.','.','.','.','.','.','.'],['r','n','b','a','k','a','b','n','r']];
+    gameState.turn = 'red';
+    gameState.lastMove = null;
+    gameState.moveCount = 0;
+    gameState.moves = [];
+    gameState.status = 'playing';
+    moveHistory = [];
+    selectedPiece = null;
+    isAIThinking = false;
+    gameStarted = false;
+    updateAIStatus('点击"开始新游戏"');
+    renderPieces();
+    updateUI();
+}
+
+function startGame() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (gameState.difficulty === 'hard' && !apiKey) {
+        showToast('高级难度需要输入 Gemini API Key');
+        document.getElementById('apiKey').focus();
+        return;
+    }
+    gameStarted = true;
+    initBoard();
+    showToast('游戏开始！红方先行');
+    updateAIStatus('等待你走棋...');
+}
+
+// ==================== 棋子操作 ====================
+function renderPieces() {
+    const container = document.getElementById('piecesContainer');
+    container.innerHTML = '';
+    for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < 9; col++) {
             const piece = gameState.board[row][col];
-            if (!piece || piece === '.') return;
-            const isRed = piece === piece.toLowerCase();
-            if (!isRed) return; // 只能选红棋（玩家）
-            if (gameState.turn !== 'red') return;
-            for (let r = 0; r < 10; r++) {
-                for (let c = 0; c < 9; c++) {
-                    if (isValidMove(row, col, r, c)) {
-                        const hint = document.createElement('div');
-                        hint.className = 'move-hint';
-                        hint.style.left = `${c * 50 + 25}px`;
-                        hint.style.top = `${r * 50 + 25}px`;
-                        hint.onclick = (e) => { e.stopPropagation(); onHintClick(r, c); };
-                        container.appendChild(hint);
-                    }
+            if (piece && piece !== '.') {
+                const el = document.createElement('div');
+                el.className = `piece ${piece === piece.toUpperCase() ? 'black' : 'red'}`;
+                if (isAIThinking && piece === piece.toUpperCase()) el.classList.add('ai-thinking');
+                el.textContent = pieceNames[piece];
+                el.style.left = `${col * 50 + 3}px`;
+                el.style.top = `${row * 50 + 3}px`;
+                if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) el.classList.add('selected');
+                if (gameState.lastMove) {
+                    const from = gameState.lastMove.from, to = gameState.lastMove.to;
+                    if ((row === from.row && col === from.col) || (row === to.row && col === to.col)) el.classList.add('last-move');
                 }
+                if (piece.toUpperCase() === 'K' && isInCheck(piece === piece.toLowerCase())) el.classList.add('check');
+                el.onclick = () => onPieceClick(row, col);
+                container.appendChild(el);
             }
         }
-        
-        function onPieceClick(row, col) {
+    }
+    if (selectedPiece && !isAIThinking) showMoveHints(selectedPiece.row, selectedPiece.col);
+}
+
+function showMoveHints(row, col) {
+    const container = document.getElementById('piecesContainer');
+    container.querySelectorAll('.move-hint').forEach(h => h.remove());
+    const piece = gameState.board[row][col];
+    if (!piece || piece === '.') return;
+    const isRed = piece === piece.toLowerCase();
+    if (!isRed) return;
+    if (gameState.turn !== 'red') return;
+    for (let r = 0; r < 10; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (isValidMove(row, col, r, c)) {
+                const hint = document.createElement('div');
+                hint.className = 'move-hint';
+                hint.style.left = `${c * 50 + 25}px`;
+                hint.style.top = `${r * 50 + 25}px`;
+                hint.onclick = (e) => { e.stopPropagation(); onHintClick(r, c); };
+                container.appendChild(hint);
+            }
+        }
+    }
+}
+
+function onPieceClick(row, col) {
+    if (!gameStarted) { showToast('请先点击"开始新游戏"'); return; }
     if (isAIThinking) { showToast('AI思考中，请稍候...'); return; }
     if (gameState.status !== 'playing') { showToast('游戏已结束！'); return; }
     if (gameState.turn !== 'red') { showToast('还没轮到你！'); return; }
@@ -374,7 +383,7 @@
     const piece = gameState.board[row][col];
     if (!piece || piece === '.') return;
     
-    const isRed = piece === piece.toLowerCase(); // true=红棋(玩家), false=黑棋(AI)
+    const isRed = piece === piece.toLowerCase();
     
     // 如果已经选中了棋子，尝试移动或吃子
     if (selectedPiece) {
@@ -396,335 +405,335 @@
     else selectedPiece = { row, col, piece };
     renderPieces();
 }
+
+function onHintClick(row, col) {
+    if (!selectedPiece || isAIThinking) return;
+    makeMove(selectedPiece.row, selectedPiece.col, row, col);
+    selectedPiece = null;
+}
+
+// ==================== 走棋逻辑 ====================
+function isValidMove(fromRow, fromCol, toRow, toCol) {
+    if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
+    if (fromRow === toRow && fromCol === toCol) return false;
+    const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol];
+    if (target !== '.' && target !== '') { const isRedPiece = piece === piece.toLowerCase(), isRedTarget = target === target.toLowerCase(); if (isRedPiece === isRedTarget) return false; }
+    const type = piece.toUpperCase(), isRed = piece === piece.toLowerCase();
+    switch(type) {
+        case 'R': return validateRook(fromRow, fromCol, toRow, toCol);
+        case 'N': return validateKnight(fromRow, fromCol, toRow, toCol);
+        case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
+        case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
+        case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed);
+        case 'C': return validateCannon(fromRow, fromCol, toRow, toCol);
+        case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
+        default: return false;
+    }
+}
+
+function countPiecesBetween(r1, c1, r2, c2) {
+    let count = 0;
+    if (r1 === r2) { const min = Math.min(c1, c2), max = Math.max(c1, c2); for (let c = min + 1; c < max; c++) if (gameState.board[r1][c] !== '.' && gameState.board[r1][c] !== '') count++; }
+    else if (c1 === c2) { const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') count++; }
+    return count;
+}
+
+function validateRook(r1, c1, r2, c2) { if (r1 !== r2 && c1 !== c2) return false; return countPiecesBetween(r1, c1, r2, c2) === 0; }
+function validateKnight(r1, c1, r2, c2) {
+    const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (!((dr === 2 && dc === 1) || (dr === 1 && dc === 2))) return false;
+    if (dr === 2) { const blockR = r1 + (r2 > r1 ? 1 : -1); if (gameState.board[blockR][c1] !== '.' && gameState.board[blockR][c1] !== '') return false; }
+    else { const blockC = c1 + (c2 > c1 ? 1 : -1); if (gameState.board[r1][blockC] !== '.' && gameState.board[r1][blockC] !== '') return false; }
+    return true;
+}
+function validateBishop(r1, c1, r2, c2, isRed) {
+    const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 2 || dc !== 2) return false;
+    if (isRed && r2 < 5) return false; if (!isRed && r2 > 4) return false;
+    const eyeR = (r1 + r2) / 2, eyeC = (c1 + c2) / 2; if (gameState.board[eyeR][eyeC] !== '.' && gameState.board[eyeR][eyeC] !== '') return false;
+    return true;
+}
+function validateAdvisor(r1, c1, r2, c2, isRed) {
+    const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 1 || dc !== 1) return false;
+    if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
+    return true;
+}
+function validateKing(r1, c1, r2, c2, isRed) {
+    const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1);
+    if (c1 === c2) { let hasPiece = false; const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') { hasPiece = true; break; } if (!hasPiece) { const target = gameState.board[r2][c2]; if (target && (target.toUpperCase() === 'K')) return true; } }
+    if (dr + dc !== 1) return false; if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
+    return true;
+}
+function validateCannon(r1, c1, r2, c2) {
+    if (r1 !== r2 && c1 !== c2) return false;
+    const count = countPiecesBetween(r1, c1, r2, c2), target = gameState.board[r2][c2];
+    if (target === '.' || target === '') return count === 0;
+    else return count === 1;
+}
+function validatePawn(r1, c1, r2, c2, isRed) {
+    const dr = r2 - r1, dc = Math.abs(c2 - c1);
+    if (isRed) { if (dr > 0) return false; if (r1 >= 5 && dc !== 0) return false; if (dr === -1 && dc === 0) return true; if (r1 < 5 && dr === 0 && dc === 1) return true; }
+    else { if (dr < 0) return false; if (r1 <= 4 && dc !== 0) return false; if (dr === 1 && dc === 0) return true; if (r1 > 4 && dr === 0 && dc === 1) return true; }
+    return false;
+}
+
+function isInCheck(isRed) {
+    let kingRow, kingCol; const kingChar = isRed ? 'k' : 'K';
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) if (gameState.board[r][c] === kingChar) { kingRow = r; kingCol = c; break; }
+    if (kingRow === undefined) return false;
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) { const piece = gameState.board[r][c]; if (piece !== '.' && piece !== '') { const pieceIsRed = piece === piece.toLowerCase(); if (pieceIsRed !== isRed) if (isValidMove(r, c, kingRow, kingCol)) return true; } }
+    return false;
+}
+
+// ==================== 游戏操作 ====================
+async function makeMove(fromRow, fromCol, toRow, toCol) {
+    const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol], isCapture = target !== '.' && target !== '';
+    
+    moveHistory.push(JSON.parse(JSON.stringify(gameState.board)));
+    
+    gameState.board[toRow][toCol] = piece;
+    gameState.board[fromRow][fromCol] = '.';
+    gameState.moves.push(`${pieceNames[piece]} ${String.fromCharCode(97 + fromCol)}${9-fromRow}→${String.fromCharCode(97 + toCol)}${9-toRow}`);
+    gameState.lastMove = { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } };
+    gameState.moveCount++;
+    
+    isCapture ? playSound('capture') : playSound('move');
+    
+    const opponentIsRed = piece === piece.toLowerCase();
+    if (isInCheck(!opponentIsRed)) { playSound('check'); showToast('将军！'); }
+    
+    if (target && target.toUpperCase() === 'K') {
+        const winner = opponentIsRed ? '黑方' : '红方';
+        showToast(`🎉 ${winner}获胜！`);
+        gameState.status = 'finished';
+        playSound('win');
+        updateAIStatus('游戏结束');
+        renderPieces();
+        updateUI();
+        return;
+    }
+    
+    gameState.turn = gameState.turn === 'red' ? 'black' : 'red';
+    updateUI();
+    renderPieces();
+    
+    if (gameState.turn === 'black' && gameState.status === 'playing') {
+        setTimeout(() => aiMove(), 500);
+    }
+}
+
+function updateUI() {
+    const turnText = document.getElementById('currentTurn');
+    if (gameState.turn === 'red') {
+        turnText.textContent = '红方（你）';
+        turnText.style.color = '#c62828';
+    } else {
+        turnText.textContent = '黑方（AI）';
+        turnText.style.color = '#333';
+    }
+    
+    const movesList = document.getElementById('movesList');
+    if (gameState.moves.length === 0) movesList.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
+    else {
+        movesList.innerHTML = gameState.moves.map((m, i) => {
+            const isRed = i % 2 === 0;
+            return `<div class="move-item"><span class="move-number">${Math.floor(i/2)+1}.</span><span class="${isRed ? 'move-red' : 'move-black'}">${m}</span></div>`;
+        }).join('');
+        movesList.scrollTop = movesList.scrollHeight;
+    }
+}
+
+function updateAIStatus(text) {
+    const status = document.getElementById('aiStatus');
+    status.textContent = text;
+    status.className = 'ai-status' + (text.includes('思考') ? ' thinking' : '');
+}
+
+// ==================== AI 走棋 ====================
+async function aiMove() {
+    if (gameState.status !== 'playing') return;
+    
+    isAIThinking = true;
+    updateAIStatus('AI 思考中...');
+    renderPieces();
+    
+    try {
+        let move;
+        const apiKey = document.getElementById('apiKey').value.trim();
         
-        function onHintClick(row, col) {
-            if (!selectedPiece || isAIThinking) return;
-            makeMove(selectedPiece.row, selectedPiece.col, row, col);
-            selectedPiece = null;
-        }
-        
-        // ==================== 走棋逻辑 ====================
-        function isValidMove(fromRow, fromCol, toRow, toCol) {
-            if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
-            if (fromRow === toRow && fromCol === toCol) return false;
-            const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol];
-            if (target !== '.' && target !== '') { const isRedPiece = piece === piece.toLowerCase(), isRedTarget = target === target.toLowerCase(); if (isRedPiece === isRedTarget) return false; }
-            const type = piece.toUpperCase(), isRed = piece === piece.toLowerCase();
-            switch(type) {
-                case 'R': return validateRook(fromRow, fromCol, toRow, toCol);
-                case 'N': return validateKnight(fromRow, fromCol, toRow, toCol);
-                case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
-                case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
-                case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed);
-                case 'C': return validateCannon(fromRow, fromCol, toRow, toCol);
-                case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
-                default: return false;
-            }
-        }
-        
-        function countPiecesBetween(r1, c1, r2, c2) {
-            let count = 0;
-            if (r1 === r2) { const min = Math.min(c1, c2), max = Math.max(c1, c2); for (let c = min + 1; c < max; c++) if (gameState.board[r1][c] !== '.' && gameState.board[r1][c] !== '') count++; }
-            else if (c1 === c2) { const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') count++; }
-            return count;
-        }
-        
-        function validateRook(r1, c1, r2, c2) { if (r1 !== r2 && c1 !== c2) return false; return countPiecesBetween(r1, c1, r2, c2) === 0; }
-        function validateKnight(r1, c1, r2, c2) {
-            const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (!((dr === 2 && dc === 1) || (dr === 1 && dc === 2))) return false;
-            if (dr === 2) { const blockR = r1 + (r2 > r1 ? 1 : -1); if (gameState.board[blockR][c1] !== '.' && gameState.board[blockR][c1] !== '') return false; }
-            else { const blockC = c1 + (c2 > c1 ? 1 : -1); if (gameState.board[r1][blockC] !== '.' && gameState.board[r1][blockC] !== '') return false; }
-            return true;
-        }
-        function validateBishop(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 2 || dc !== 2) return false;
-            if (isRed && r2 < 5) return false; if (!isRed && r2 > 4) return false;
-            const eyeR = (r1 + r2) / 2, eyeC = (c1 + c2) / 2; if (gameState.board[eyeR][eyeC] !== '.' && gameState.board[eyeR][eyeC] !== '') return false;
-            return true;
-        }
-        function validateAdvisor(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 1 || dc !== 1) return false;
-            if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
-            return true;
-        }
-        function validateKing(r1, c1, r2, c2, isRed) {
-            const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1);
-            if (c1 === c2) { let hasPiece = false; const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') { hasPiece = true; break; } if (!hasPiece) { const target = gameState.board[r2][c2]; if (target && (target.toUpperCase() === 'K')) return true; } }
-            if (dr + dc !== 1) return false; if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
-            return true;
-        }
-        function validateCannon(r1, c1, r2, c2) {
-            if (r1 !== r2 && c1 !== c2) return false;
-            const count = countPiecesBetween(r1, c1, r2, c2), target = gameState.board[r2][c2];
-            if (target === '.' || target === '') return count === 0;
-            else return count === 1;
-        }
-        function validatePawn(r1, c1, r2, c2, isRed) {
-            const dr = r2 - r1, dc = Math.abs(c2 - c1);
-            if (isRed) { if (dr > 0) return false; if (r1 >= 5 && dc !== 0) return false; if (dr === -1 && dc === 0) return true; if (r1 < 5 && dr === 0 && dc === 1) return true; }
-            else { if (dr < 0) return false; if (r1 <= 4 && dc !== 0) return false; if (dr === 1 && dc === 0) return true; if (r1 > 4 && dr === 0 && dc === 1) return true; }
-            return false;
-        }
-        
-        function isInCheck(isRed) {
-            let kingRow, kingCol; const kingChar = isRed ? 'k' : 'K';
-            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) if (gameState.board[r][c] === kingChar) { kingRow = r; kingCol = c; break; }
-            if (kingRow === undefined) return false;
-            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) { const piece = gameState.board[r][c]; if (piece !== '.' && piece !== '') { const pieceIsRed = piece === piece.toLowerCase(); if (pieceIsRed !== isRed) if (isValidMove(r, c, kingRow, kingCol)) return true; } }
-            return false;
-        }
-        
-        // ==================== 游戏操作 ====================
-        async function makeMove(fromRow, fromCol, toRow, toCol) {
-            const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol], isCapture = target !== '.' && target !== '';
-            
-            // 保存历史
-            moveHistory.push(JSON.parse(JSON.stringify(gameState.board)));
-            
-            gameState.board[toRow][toCol] = piece;
-            gameState.board[fromRow][fromCol] = '.';
-            gameState.moves.push(`${pieceNames[piece]} ${String.fromCharCode(97 + fromCol)}${9-fromRow}→${String.fromCharCode(97 + toCol)}${9-toRow}`);
-            gameState.lastMove = { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } };
-            gameState.moveCount++;
-            
-            isCapture ? playSound('capture') : playSound('move');
-            
-            const opponentIsRed = piece === piece.toLowerCase();
-            if (isInCheck(!opponentIsRed)) { playSound('check'); showToast('将军！'); }
-            
-            if (target && target.toUpperCase() === 'K') {
-                const winner = opponentIsRed ? '黑方' : '红方';
-                showToast(`🎉 ${winner}获胜！`);
-                gameState.status = 'finished';
-                playSound('win');
-                updateAIStatus('游戏结束');
-                renderPieces();
-                updateUI();
-                return;
-            }
-            
-            gameState.turn = gameState.turn === 'red' ? 'black' : 'red';
-            updateUI();
-            renderPieces();
-            
-            // AI 走棋
-            if (gameState.turn === 'black' && gameState.status === 'playing') {
-                setTimeout(() => aiMove(), 500);
-            }
-        }
-        
-        function updateUI() {
-            const turnText = document.getElementById('currentTurn');
-            if (gameState.turn === 'red') {
-                turnText.textContent = '红方（你）';
-                turnText.style.color = '#c62828';
-            } else {
-                turnText.textContent = '黑方（AI）';
-                turnText.style.color = '#333';
-            }
-            
-            const movesList = document.getElementById('movesList');
-            if (gameState.moves.length === 0) movesList.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
-            else {
-                movesList.innerHTML = gameState.moves.map((m, i) => {
-                    const isRed = i % 2 === 0;
-                    return `<div class="move-item"><span class="move-number">${Math.floor(i/2)+1}.</span><span class="${isRed ? 'move-red' : 'move-black'}">${m}</span></div>`;
-                }).join('');
-                movesList.scrollTop = movesList.scrollHeight;
-            }
-        }
-        
-        function updateAIStatus(text) {
-            const status = document.getElementById('aiStatus');
-            status.textContent = text;
-            status.className = 'ai-status' + (text.includes('思考') ? ' thinking' : '');
-        }
-        
-        // ==================== AI 走棋 ====================
-        async function aiMove() {
-            if (gameState.status !== 'playing') return;
-            
-            isAIThinking = true;
-            updateAIStatus('AI 思考中...');
-            renderPieces();
-            
-            try {
-                let move;
-                const apiKey = document.getElementById('apiKey').value.trim();
-                
-                if (apiKey && !useLocalAI) {
-                    // 使用 Gemini API
-                    move = await getAIMoveFromAPI(apiKey);
-                } else {
-                    // 使用本地简单AI
-                    move = getLocalAIMove();
-                }
-                
-                if (move) {
-                    const { from, to } = move;
-                    makeMove(from.row, from.col, to.row, to.col);
-                    updateAIStatus('等待你走棋...');
-                } else {
-                    // AI 无法走棋，可能被困
-                    showToast('AI 认输！你赢了！');
-                    gameState.status = 'finished';
-                    playSound('win');
-                    updateAIStatus('AI 认输');
-                }
-            } catch (err) {
-                console.error('AI error:', err);
-                // API 失败，使用本地AI
-                const move = getLocalAIMove();
-                if (move) {
-                    const { from, to } = move;
-                    makeMove(from.row, from.col, to.row, to.col);
-                    updateAIStatus('等待你走棋...');
-                }
-            } finally {
-                isAIThinking = false;
-                renderPieces();
-            }
+        if (gameState.difficulty === 'hard' && apiKey) {
+            // 高级：使用 Gemini API
+            move = await getGeminiMove(apiKey);
+        } else {
+            // 入门/中级：使用本地AI
+            move = getLocalAIMove();
         }
         
-        // 本地简单AI（基于规则 + 随机）
-        function getLocalAIMove() {
-            const validMoves = [];
-            
-            // 收集所有合法走法
-            for (let r = 0; r < 10; r++) {
-                for (let c = 0; c < 9; c++) {
-                    const piece = gameState.board[r][c];
-                    if (piece !== '.' && piece === piece.toUpperCase()) { // 黑棋（AI）
-                        for (let tr = 0; tr < 10; tr++) {
-                            for (let tc = 0; tc < 9; tc++) {
-                                if (isValidMove(r, c, tr, tc)) {
-                                    const target = gameState.board[tr][tc];
-                                    let score = 0;
-                                    
-                                    // 评分系统
-                                    if (target !== '.') {
-                                        // 吃子得分
-                                        const targetType = target.toLowerCase();
-                                        const pieceValues = { 'p': 10, 'c': 45, 'r': 90, 'n': 40, 'b': 20, 'a': 20, 'k': 1000 };
-                                        score += pieceValues[targetType] || 10;
-                                    }
-                                    
-                                    // 将军奖励
-                                    const testBoard = JSON.parse(JSON.stringify(gameState.board));
-                                    testBoard[tr][tc] = piece;
-                                    testBoard[r][c] = '.';
-                                    const originalBoard = gameState.board;
-                                    gameState.board = testBoard;
-                                    if (isInCheck(true)) score += 50; // 将军红方
-                                    gameState.board = originalBoard;
-                                    
-                                    // 难度调整
-                                    if (gameState.difficulty === 'easy') score *= 0.5;
-                                    if (gameState.difficulty === 'hard') score *= 1.5;
-                                    
-                                    validMoves.push({ from: { row: r, col: c }, to: { row: tr, col: tc }, score: score + Math.random() * 10 });
-                                }
+        if (move) {
+            const { from, to } = move;
+            makeMove(from.row, from.col, to.row, to.col);
+            updateAIStatus('等待你走棋...');
+        } else {
+            showToast('AI 认输！你赢了！');
+            gameState.status = 'finished';
+            playSound('win');
+            updateAIStatus('AI 认输');
+        }
+    } catch (err) {
+        console.error('AI error:', err);
+        // 出错时用本地AI
+        const move = getLocalAIMove();
+        if (move) {
+            const { from, to } = move;
+            makeMove(from.row, from.col, to.row, to.col);
+            updateAIStatus('等待你走棋...');
+        }
+    } finally {
+        isAIThinking = false;
+        renderPieces();
+    }
+}
+
+// 本地简单AI
+function getLocalAIMove() {
+    const validMoves = [];
+    
+    for (let r = 0; r < 10; r++) {
+        for (let c = 0; c < 9; c++) {
+            const piece = gameState.board[r][c];
+            if (piece !== '.' && piece === piece.toUpperCase()) {
+                for (let tr = 0; tr < 10; tr++) {
+                    for (let tc = 0; tc < 9; tc++) {
+                        if (isValidMove(r, c, tr, tc)) {
+                            const target = gameState.board[tr][tc];
+                            let score = 0;
+                            
+                            // 吃子得分
+                            if (target !== '.') {
+                                score += pieceValues[target] || 10;
                             }
+                            
+                            // 位置评分（推进）
+                            if (piece === 'P' && tr > r) score += 5;
+                            if (piece === 'C' && tr > 2) score += 3;
+                            
+                            // 将军检测
+                            const testBoard = JSON.parse(JSON.stringify(gameState.board));
+                            testBoard[tr][tc] = piece;
+                            testBoard[r][c] = '.';
+                            const origBoard = gameState.board;
+                            gameState.board = testBoard;
+                            if (isInCheck(true)) score += 100;
+                            gameState.board = origBoard;
+                            
+                            validMoves.push({ from: { row: r, col: c }, to: { row: tr, col: tc }, score: score + Math.random() * 5 });
                         }
                     }
                 }
             }
-            
-            if (validMoves.length === 0) return null;
-            
-            // 根据难度选择
-            validMoves.sort((a, b) => b.score - a.score);
-            
-            if (gameState.difficulty === 'easy') {
-                // 入门：从前50%随机选
-                const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.5));
-                return topMoves[Math.floor(Math.random() * topMoves.length)];
-            } else if (gameState.difficulty === 'medium') {
-                // 中级：从前30%随机选
-                const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.3));
-                return topMoves[Math.floor(Math.random() * topMoves.length)];
-            } else {
-                // 高级：选最优
-                return validMoves[0];
-            }
         }
-        
-        // Gemini API
-        async function getAIMoveFromAPI(apiKey) {
-            const boardStr = gameState.board.map(row => row.join('')).join('\n');
-            const prompt = `你是中国象棋AI，执黑棋（大写字母）。当前棋盘：
+    }
+    
+    if (validMoves.length === 0) return null;
+    
+    validMoves.sort((a, b) => b.score - a.score);
+    
+    if (gameState.difficulty === 'easy') {
+        const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.5));
+        return topMoves[Math.floor(Math.random() * topMoves.length)];
+    } else {
+        const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.2));
+        return topMoves[Math.floor(Math.random() * topMoves.length)];
+    }
+}
+
+// Gemini API - 真正的AI
+async function getGeminiMove(apiKey) {
+    const boardStr = gameState.board.map((row, i) => {
+        return `${i}: ${row.map((p, j) => p === '.' ? '·' : p).join(' ')}`;
+    }).join('\n');
+    
+    const prompt = `你是中国象棋大师，执黑棋（大写字母）。分析当前局面，选择最佳走法。
+
+当前棋盘（行号0-9，列号0-8）：
 ${boardStr}
- 
-棋盘说明：
-- 小写字母 rnbakcp 是红方（对手）的棋子：r车 n马 b象 a士 k帅 c炮 p兵
-- 大写字母 RNB AKCP 是你的棋子：R车 N马 B象 A士 K将 C炮 P卒
-- 你是黑方，要最大化你的优势
- 
-请分析局面，选择最佳走法。只回复格式：fromRow,fromCol,toRow,toCol
-例如：0,0,0,1 表示从(0,0)移动到(0,1)`;
- 
-            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.2, maxOutputTokens: 50 }
-                })
-            });
-            
-            if (!response.ok) throw new Error('API failed');
-            
-            const data = await response.json();
-            const text = data.candidates[0].content.parts[0].text;
-            const match = text.match(/(\d+),(\d+),(\d+),(\d+)/);
-            
-            if (match) {
-                const [_, fr, fc, tr, tc] = match.map(Number);
-                if (isValidMove(fr, fc, tr, tc)) {
-                    return { from: { row: fr, col: fc }, to: { row: tr, col: tc } };
-                }
-            }
-            
-            // API 返回不合法，回退到本地AI
-            return getLocalAIMove();
+
+棋子说明：
+- 小写 rnbakcp = 红方（对手）：车r 马n 象b 士a 帅k 炮c 兵p
+- 大写 RNB AKCP = 你（黑方）：车R 马N 象B 士A 将K 炮C 卒P
+
+走法格式：fromRow,fromCol,toRow,toCol
+例如：3,0,4,0 表示从(3,0)移动到(4,0)
+
+要求：
+1. 分析局面优劣
+2. 考虑吃子、将军、保护己方棋子
+3. 选择胜率最高的走法
+4. 只回复4个数字，格式：行,列,目标行,目标列`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 100 }
+        })
+    });
+    
+    if (!response.ok) throw new Error('API failed');
+    
+    const data = await response.json();
+    const text = data.candidates[0].content.parts[0].text;
+    
+    // 提取数字
+    const match = text.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (!match) throw new Error('Invalid response format');
+    
+    const [_, fr, fc, tr, tc] = match.map(Number);
+    
+    // 验证走法合法
+    if (fr >= 0 && fr < 10 && fc >= 0 && fc < 9 && tr >= 0 && tr < 10 && tc >= 0 && tc < 9) {
+        const piece = gameState.board[fr][fc];
+        if (piece && piece === piece.toUpperCase() && isValidMove(fr, fc, tr, tc)) {
+            return { from: { row: fr, col: fc }, to: { row: tr, col: tc } };
         }
-        
-        // ==================== 其他功能 ====================
-        function undoMove() {
-            if (isAIThinking) { showToast('AI思考中，无法悔棋'); return; }
-            if (moveHistory.length < 2) { showToast('无法悔棋'); return; }
-            
-            // 回退两步（玩家和AI各一步）
-            moveHistory.pop(); // 移除AI的走法
-            gameState.board = moveHistory.pop(); // 恢复玩家的走法前
-            
-            gameState.turn = 'red';
-            gameState.moves = gameState.moves.slice(0, -2);
-            gameState.moveCount -= 2;
-            gameState.lastMove = null;
-            
-            renderPieces();
-            updateUI();
-            showToast('已悔棋');
-        }
-        
-        function resign() {
-            if (gameState.status !== 'playing') return;
-            if (!confirm('确定要认输吗？')) return;
-            showToast('你认输了，AI获胜！');
-            gameState.status = 'finished';
-            playSound('win');
-            updateAIStatus('AI 获胜');
-        }
-        
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-        
-        window.onload = init;
+    }
+    
+    throw new Error('Invalid move from AI');
+}
+
+// ==================== 其他功能 ====================
+function undoMove() {
+    if (isAIThinking) { showToast('AI思考中，无法悔棋'); return; }
+    if (moveHistory.length < 2) { showToast('无法悔棋'); return; }
+    
+    moveHistory.pop();
+    gameState.board = moveHistory.pop();
+    gameState.turn = 'red';
+    gameState.moves = gameState.moves.slice(0, -2);
+    gameState.moveCount -= 2;
+    gameState.lastMove = null;
+    
+    renderPieces();
+    updateUI();
+    showToast('已悔棋');
+}
+
+function resign() {
+    if (gameState.status !== 'playing') return;
+    if (!confirm('确定要认输吗？')) return;
+    showToast('你认输了，AI获胜！');
+    gameState.status = 'finished';
+    playSound('win');
+    updateAIStatus('AI 获胜');
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+window.onload = init;
     </script>
 </body>
 </html>
