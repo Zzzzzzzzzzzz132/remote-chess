@@ -374,19 +374,26 @@
     const piece = gameState.board[row][col];
     if (!piece || piece === '.') return;
     
-    // 修复：检查是否是红棋（玩家棋子）
-    const isRed = piece === piece.toLowerCase();
-    if (!isRed) { // 大写字母是黑棋（AI）
-        showToast('这是AI的棋子，不能吃！'); 
-        return; 
+    const isRed = piece === piece.toLowerCase(); // true=红棋(玩家), false=黑棋(AI)
+    
+    // 如果已经选中了棋子，尝试移动或吃子
+    if (selectedPiece) {
+        if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+            makeMove(selectedPiece.row, selectedPiece.col, row, col);
+            selectedPiece = null;
+            return;
+        }
+    }
+    
+    // 只能选自己的红棋
+    if (!isRed) {
+        showToast('这是AI的棋子');
+        return;
     }
     
     playSound('select');
-    if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
-        selectedPiece = null;
-    } else {
-        selectedPiece = { row, col, piece };
-    }
+    if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) selectedPiece = null;
+    else selectedPiece = { row, col, piece };
     renderPieces();
 }
         
