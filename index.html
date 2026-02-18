@@ -78,15 +78,15 @@
         
         .horizontal-line {
             position: absolute;
-            width: 100%;
+            width: 400px;
             height: 1px;
             background: #333;
+            left: 25px;
         }
         
         .vertical-line {
             position: absolute;
             width: 1px;
-            height: 100%;
             background: #333;
         }
         
@@ -105,10 +105,10 @@
             transform-origin: left center;
         }
         
-        .palace-line.top-left { top: 50px; left: 154px; transform: rotate(45deg); }
-        .palace-line.top-right { top: 50px; right: 154px; transform: rotate(-45deg); }
-        .palace-line.bottom-left { bottom: 50px; left: 154px; transform: rotate(-45deg); }
-        .palace-line.bottom-right { bottom: 50px; right: 154px; transform: rotate(45deg); }
+        .palace-line.top-left { top: 75px; left: 154px; transform: rotate(45deg); }
+        .palace-line.top-right { top: 75px; right: 154px; transform: rotate(-45deg); }
+        .palace-line.bottom-left { bottom: 75px; left: 154px; transform: rotate(-45deg); }
+        .palace-line.bottom-right { bottom: 75px; right: 154px; transform: rotate(45deg); }
         
         .river {
             position: absolute;
@@ -199,8 +199,14 @@
             background: rgba(0,255,0,0.6);
             border-radius: 50%;
             transform: translate(-50%, -50%);
-            pointer-events: none;
+            pointer-events: auto;
+            cursor: pointer;
             z-index: 5;
+        }
+        
+        .move-hint:hover {
+            background: rgba(0,255,0,0.9);
+            transform: translate(-50%, -50%) scale(1.3);
         }
         
         .side-panel {
@@ -817,7 +823,7 @@
         function init() {
             localStorage.setItem('chess_player_id', myPlayerId);
             drawBoard();
-            initBoard(false); // 先初始化本地棋盘
+            initBoard(false);
             loadGame();
             startSync();
             startTimer();
@@ -835,15 +841,14 @@
             });
         }
         
-        // ==================== 阵营选择（修复版）====================
+        // ==================== 阵营选择 ====================
         function selectRole(color) {
             if (myColor) {
                 showToast('你已经选择了阵营！');
                 return;
             }
             
-            // 检查对方是否已选
-            if (gameState.players[color]) {
+            if (gameState.players[color] && gameState.players[color] !== myPlayerId) {
                 showToast('该阵营已被选择，请选择另一个！');
                 return;
             }
@@ -851,21 +856,18 @@
             myColor = color;
             gameState.players[color] = myPlayerId;
             
-            // 更新UI
             const badge = document.getElementById('playerRole');
             badge.textContent = color === 'red' ? '红方' : '黑方';
             badge.className = `player-badge ${color}`;
             
             document.getElementById('roleSelection').style.display = 'none';
             
-            // 添加系统消息
             gameState.chat.push({
                 sender: 'system',
                 text: `${color === 'red' ? '红方' : '黑方'}已加入游戏`,
                 time: Date.now()
             });
             
-            // 如果双方都加入了，开始游戏
             if (gameState.players.red && gameState.players.black) {
                 gameState.status = 'playing';
                 gameState.timerRunning = true;
@@ -887,11 +889,9 @@
             const btnRed = document.getElementById('btnRed');
             const btnBlack = document.getElementById('btnBlack');
             
-            // 重置按钮状态
             btnRed.className = 'role-btn red';
             btnBlack.className = 'role-btn black';
             
-            // 标记已选择的阵营
             if (gameState.players.red) {
                 btnRed.classList.add('disabled');
                 if (gameState.players.red === myPlayerId) btnRed.classList.add('selected');
@@ -901,7 +901,6 @@
                 if (gameState.players.black === myPlayerId) btnBlack.classList.add('selected');
             }
             
-            // 如果已经选了阵营，隐藏选择区
             if (myColor) {
                 document.getElementById('roleSelection').style.display = 'none';
             }
@@ -1061,7 +1060,6 @@
         function acceptUndo() {
             const targetMove = gameState.undoRequest.moveCount;
             
-            // 重新初始化棋盘
             initBoard(false);
             
             gameState.undoRequest = null;
@@ -1088,11 +1086,12 @@
             renderChat();
         }
         
-        // ==================== 绘制棋盘 ====================
+        // ==================== 绘制棋盘（修复版）====================
         function drawBoard() {
             const hLines = document.getElementById('hLines');
             const vLines = document.getElementById('vLines');
             
+            // 绘制横线 (10条)
             for (let i = 0; i < 10; i++) {
                 const line = document.createElement('div');
                 line.className = 'horizontal-line';
@@ -1100,29 +1099,38 @@
                 hLines.appendChild(line);
             }
             
+            // 绘制竖线 (9条) - 修复：中间断开
             for (let i = 0; i < 9; i++) {
-                const line = document.createElement('div');
-                line.className = 'vertical-line';
-                line.style.left = `${i * 50 + 25}px`;
-                
                 if (i === 0 || i === 8) {
-                    line.style.height = '100%';
-                } else {
-                    line.style.height = '200px';
+                    // 左右边线 - 贯通
+                    const line = document.createElement('div');
+                    line.className = 'vertical-line';
+                    line.style.left = `${i * 50 + 25}px`;
                     line.style.top = '25px';
+                    line.style.height = '450px';
+                    vLines.appendChild(line);
+                } else {
+                    // 中间线 - 上下两段（楚河汉界处断开）
+                    // 上半段
+                    const line1 = document.createElement('div');
+                    line1.className = 'vertical-line';
+                    line1.style.left = `${i * 50 + 25}px`;
+                    line1.style.top = '25px';
+                    line1.style.height = '200px';
+                    vLines.appendChild(line1);
                     
+                    // 下半段
                     const line2 = document.createElement('div');
                     line2.className = 'vertical-line';
                     line2.style.left = `${i * 50 + 25}px`;
-                    line2.style.height = '200px';
                     line2.style.top = '275px';
+                    line2.style.height = '200px';
                     vLines.appendChild(line2);
                 }
-                vLines.appendChild(line);
             }
         }
         
-        // ==================== 棋子操作 ====================
+        // ==================== 棋子操作（修复版）====================
         function renderPieces() {
             const container = document.getElementById('piecesContainer');
             container.innerHTML = '';
@@ -1147,7 +1155,8 @@
                         }
                         
                         if (gameState.lastMove) {
-                            const [from, to] = [gameState.lastMove.from, gameState.lastMove.to];
+                            const from = gameState.lastMove.from;
+                            const to = gameState.lastMove.to;
                             if ((row === from.row && col === from.col) || 
                                 (row === to.row && col === to.col)) {
                                 el.classList.add('last-move');
@@ -1171,6 +1180,11 @@
         
         function showMoveHints(row, col) {
             const container = document.getElementById('piecesContainer');
+            
+            // 清除之前的提示
+            const oldHints = container.querySelectorAll('.move-hint');
+            oldHints.forEach(h => h.remove());
+            
             const piece = gameState.board[row][col];
             if (!piece || piece === '.') return;
             
@@ -1185,7 +1199,10 @@
                         hint.className = 'move-hint';
                         hint.style.left = `${c * 50 + 25}px`;
                         hint.style.top = `${r * 50 + 25}px`;
-                        hint.onclick = () => onHintClick(r, c);
+                        hint.onclick = (e) => {
+                            e.stopPropagation();
+                            onHintClick(r, c);
+                        };
                         container.appendChild(hint);
                     }
                 }
@@ -1193,15 +1210,18 @@
         }
         
         function onPieceClick(row, col) {
-            // 必须先选阵营
             if (!myColor) {
                 showToast('请先选择阵营！');
                 return;
             }
             
-            // 必须轮到己方
             if (gameState.turn !== myColor) {
                 showToast('还没轮到你！');
+                return;
+            }
+            
+            if (gameState.status === 'finished') {
+                showToast('游戏已结束！');
                 return;
             }
             
@@ -1210,7 +1230,6 @@
             
             const isRed = piece === piece.toLowerCase();
             
-            // 只能选自己的棋子
             if ((isRed && myColor !== 'red') || (!isRed && myColor !== 'black')) {
                 showToast('这是对方的棋子！');
                 return;
@@ -1232,7 +1251,7 @@
             selectedPiece = null;
         }
         
-        // ==================== 走棋逻辑 ====================
+        // ==================== 走棋逻辑（修复炮打翻山）====================
         function isValidMove(fromRow, fromCol, toRow, toCol) {
             if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
             if (fromRow === toRow && fromCol === toCol) return false;
@@ -1240,6 +1259,7 @@
             const piece = gameState.board[fromRow][fromCol];
             const target = gameState.board[toRow][toCol];
             
+            // 不能吃自己的棋子
             if (target !== '.' && target !== '') {
                 const isRedPiece = piece === piece.toLowerCase();
                 const isRedTarget = target === target.toLowerCase();
@@ -1330,6 +1350,7 @@
             const dr = Math.abs(r2 - r1);
             const dc = Math.abs(c2 - c1);
             
+            // 将帅对面（飞将）
             if (c1 === c2) {
                 let hasPiece = false;
                 const min = Math.min(r1, r2);
@@ -1362,8 +1383,10 @@
             const target = gameState.board[r2][c2];
             
             if (target === '.' || target === '') {
+                // 不吃子，必须直走，中间不能有棋子
                 return count === 0;
             } else {
+                // 吃子，中间必须隔一个棋子（翻山）
                 return count === 1;
             }
         }
@@ -1373,10 +1396,10 @@
             const dc = Math.abs(c2 - c1);
             
             if (isRed) {
-                if (dr > 0) return false;
-                if (r1 >= 5 && dc !== 0) return false;
-                if (dr === -1 && dc === 0) return true;
-                if (r1 < 5 && dr === 0 && dc === 1) return true;
+                if (dr > 0) return false; // 不能后退
+                if (r1 >= 5 && dc !== 0) return false; // 过河前不能横走
+                if (dr === -1 && dc === 0) return true; // 向前走
+                if (r1 < 5 && dr === 0 && dc === 1) return true; // 过河后横走
             } else {
                 if (dr < 0) return false;
                 if (r1 <= 4 && dc !== 0) return false;
@@ -1456,6 +1479,13 @@
                 gameState.status = 'finished';
                 gameState.timerRunning = false;
                 playSound('win');
+                
+                gameState.chat.push({
+                    sender: 'system',
+                    text: `🎉 ${winner}获胜！`,
+                    time: Date.now()
+                });
+                renderChat();
             }
             
             renderPieces();
@@ -1487,7 +1517,7 @@
                 !myColor || gameState.moves.length === 0 || gameState.status === 'finished';
         }
         
-        // ==================== 数据同步（修复版）====================
+        // ==================== 数据同步（修复认输同步）====================
         async function loadGame() {
             try {
                 const response = await fetch(GIST_API, {
@@ -1501,36 +1531,51 @@
                 const content = gist.files['chess-game.json'].content;
                 const data = JSON.parse(content);
                 
-                // 合并数据：保留本地选择，同步游戏状态
-                if (data.timestamp > gameState.timestamp || isFirstLoad) {
+                // 强制同步关键状态（认输、结束等）
+                const needSync = data.timestamp > gameState.timestamp || 
+                                 data.status !== gameState.status ||
+                                 (data.chat && data.chat.length > (gameState.chat || []).length);
+                
+                if (needSync || isFirstLoad) {
                     isFirstLoad = false;
                     
-                    // 保存本地阵营选择
                     const localColor = myColor;
                     const localPlayerId = myPlayerId;
+                    const localSelected = selectedPiece;
                     
-                    // 同步游戏数据
+                    // 保存本地聊天输入
+                    const chatInputVal = document.getElementById('chatInput').value;
+                    
+                    // 同步数据
                     gameState = data;
                     
-                    // 恢复本地身份
+                    // 恢复本地状态
                     myPlayerId = localPlayerId;
-                    if (localColor) {
-                        myColor = localColor;
-                        // 确保服务器记录正确
-                        if (gameState.players[localColor] !== localPlayerId) {
-                            gameState.players[localColor] = localPlayerId;
-                        }
+                    myColor = localColor;
+                    selectedPiece = localSelected;
+                    
+                    if (myColor && gameState.players[myColor] !== myPlayerId) {
+                        gameState.players[myColor] = myPlayerId;
                     }
                     
-                    // 检查并更新阵营状态
-                    if (gameState.players.red === myPlayerId) myColor = 'red';
-                    else if (gameState.players.black === myPlayerId) myColor = 'black';
+                    // 检查游戏结束状态变化
+                    if (gameState.status === 'finished' && !document.getElementById('toast').classList.contains('show')) {
+                        // 查找最后的系统消息
+                        const lastSystemMsg = gameState.chat.filter(m => m.sender === 'system').pop();
+                        if (lastSystemMsg && lastSystemMsg.text.includes('获胜')) {
+                            showToast(lastSystemMsg.text);
+                            playSound('win');
+                        }
+                    }
                     
                     renderPieces();
                     updateUI();
                     renderChat();
                     checkUndoRequest();
                     updateRoleButtons();
+                    
+                    // 恢复聊天输入
+                    document.getElementById('chatInput').value = chatInputVal;
                 }
                 
                 updateConnectionStatus(true);
@@ -1640,28 +1685,36 @@
         }
         
         function resign() {
+            if (!myColor) {
+                showToast('请先选择阵营');
+                return;
+            }
+            
             if (!confirm('确定要认输吗？')) return;
             
             const winner = myColor === 'red' ? '黑方' : '红方';
-            showToast(`你认输了，${winner}获胜！`);
             gameState.status = 'finished';
             gameState.timerRunning = false;
             
+            const msg = `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`;
+            
             gameState.chat.push({
                 sender: 'system',
-                text: `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`,
+                text: msg,
                 time: Date.now()
             });
             
+            showToast(`你认输了，${winner}获胜！`);
             playSound('win');
+            
             saveGame();
             renderChat();
+            updateUI();
         }
         
         async function resetGame() {
             if (!confirm('确定要重新开始吗？')) return;
             
-            // 保留阵营选择，重置游戏状态
             const savedRed = gameState.players.red;
             const savedBlack = gameState.players.black;
             
