@@ -133,7 +133,8 @@
         .role-btn.disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; }
         .role-btn.red { border-color: #c62828; }
         .role-btn.black { border-color: #333; }
-        .proxy-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.85em; color: #856404; text-align: center; }
+        .error-box { background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.85em; color: #721c24; text-align: center; display: none; }
+        .error-box a { color: #721c24; font-weight: bold; text-decoration: underline; }
         @media (max-width: 800px) { .board { width: 360px; height: 400px; } .piece { width: 36px; height: 36px; font-size: 16px; } .side-panel { width: 100%; } }
     </style>
 </head>
@@ -162,12 +163,10 @@
         </div>
         
         <div class="side-panel">
-            <div class="panel-section" id="proxySection">
-                <div class="proxy-warning">
-                    ⚠️ 首次使用需要激活代理<br>
-                    <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:#856404;font-weight:bold;">
-                        点击这里激活代理（免费）
-                    </a>
+            <div class="panel-section" id="errorSection" style="display:none;">
+                <div class="error-box" id="errorBox">
+                    ⚠️ <span id="errorText">连接失败</span><br>
+                    <a href="#" onclick="retryConnection()">点击重试</a>
                 </div>
             </div>
             
@@ -258,11 +257,21 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // ==================== 配置（使用 CORS 代理）====================
+        // ==================== 配置（使用多个备用代理）====================
         const GIST_ID = '932c2d47035c60f134c28cce0b08428e';
-        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-        const GIST_API = `${CORS_PROXY}https://api.github.com/gists/${GIST_ID}`;
         const GITHUB_TOKEN = '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';
+        
+        // 多个 CORS 代理，自动切换
+        const PROXY_LIST = [
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?'
+        ];
+        let currentProxyIndex = 0;
+        
+        function getGistApiUrl() {
+            return `${PROXY_LIST[currentProxyIndex]}https://api.github.com/gists/${GIST_ID}`;
+        }
         
         // ==================== 游戏状态 ====================
         let gameState = {
@@ -289,7 +298,6 @@
             const gainNode = audioContext.createGain();
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
             switch(type) {
                 case 'move': oscillator.frequency.value = 400; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.1); break;
                 case 'capture': oscillator.frequency.value = 200; gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.2); break;
@@ -304,17 +312,26 @@
         function init() {
             localStorage.setItem('chess_player_id', myPlayerId);
             drawBoard(); initBoard(false); loadGame(); startSync(); startTimer();
-            setupChatInput(); updateRoleButtons(); checkProxy();
+            setupChatInput(); updateRoleButtons();
         }
         
         function generateId() { return 'player_' + Math.random().toString(36).substr(2, 9); }
         function setupChatInput() { document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); }); }
         
-        async function checkProxy() {
-            try {
-                const response = await fetch(GIST_API, { method: 'HEAD', headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
-                if (response.ok) { document.getElementById('proxySection').style.display = 'none'; showToast('代理连接成功！'); }
-            } catch (err) { showToast('请激活代理（点击上方黄色提示）'); }
+        function showError(msg) {
+            document.getElementById('errorSection').style.display = 'block';
+            document.getElementById('errorBox').style.display = 'block';
+            document.getElementById('errorText').textContent = msg;
+        }
+        
+        function hideError() {
+            document.getElementById('errorSection').style.display = 'none';
+        }
+        
+        function retryConnection() {
+            currentProxyIndex = (currentProxyIndex + 1) % PROXY_LIST.length;
+            showToast(`切换到代理 ${currentProxyIndex + 1}/${PROXY_LIST.length}`);
+            loadGame();
         }
         
         function selectRole(color) {
@@ -565,29 +582,43 @@
         
         async function loadGame() {
             try {
-                const response = await fetch(GIST_API, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
-                if (!response.ok) { if (response.status === 403) { showToast('请激活代理（点击上方黄色提示）'); document.getElementById('proxySection').style.display = 'block'; } throw new Error('Failed to load'); }
-                const gist = await response.json(), content = gist.files['chess-game.json'].content, data = JSON.parse(content);
-                const needSync = data.timestamp > gameState.timestamp || data.status !== gameState.status || (data.chat && data.chat.length > (gameState.chat || []).length);
+                const response = await fetch(getGistApiUrl(), { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                // 处理不同代理返回格式
+                const gistData = data.contents ? JSON.parse(data.contents) : (data.files ? data : JSON.parse(data));
+                
+                const needSync = gistData.timestamp > gameState.timestamp || gistData.status !== gameState.status || (gistData.chat && gistData.chat.length > (gameState.chat || []).length);
+                
                 if (needSync || isFirstLoad) {
                     isFirstLoad = false;
                     const localColor = myColor, localPlayerId = myPlayerId, localSelected = selectedPiece, chatInputVal = document.getElementById('chatInput').value;
-                    gameState = data; myPlayerId = localPlayerId; myColor = localColor; selectedPiece = localSelected;
+                    gameState = gistData; myPlayerId = localPlayerId; myColor = localColor; selectedPiece = localSelected;
                     if (myColor && gameState.players[myColor] !== myPlayerId) gameState.players[myColor] = myPlayerId;
                     if (gameState.status === 'finished') { const lastSystemMsg = gameState.chat.filter(m => m.sender === 'system').pop(); if (lastSystemMsg && lastSystemMsg.text.includes('获胜')) { showToast(lastSystemMsg.text); playSound('win'); } }
-                    renderPieces(); updateUI(); renderChat(); checkUndoRequest(); updateRoleButtons(); document.getElementById('chatInput').value = chatInputVal; document.getElementById('proxySection').style.display = 'none';
+                    renderPieces(); updateUI(); renderChat(); checkUndoRequest(); updateRoleButtons(); document.getElementById('chatInput').value = chatInputVal;
+                    hideError();
                 }
                 updateConnectionStatus(true);
-            } catch (err) { console.error('Load error:', err); updateConnectionStatus(false); if (gameState.board.length === 0) initBoard(false); }
+            } catch (err) {
+                console.error('Load error:', err);
+                updateConnectionStatus(false);
+                showError('连接失败，点击重试切换代理');
+                if (gameState.board.length === 0) initBoard(false);
+            }
         }
         
         async function saveGame() {
             if (isSyncing) return; isSyncing = true; updateConnectionStatus(true, true);
             try {
-                const response = await fetch(GIST_API, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${GITHUB_TOKEN}` }, body: JSON.stringify({ files: { 'chess-game.json': { content: JSON.stringify(gameState, null, 2) } } }) });
-                if (!response.ok) { if (response.status === 403) { showToast('请激活代理（点击上方黄色提示）'); document.getElementById('proxySection').style.display = 'block'; } throw new Error('Failed to save'); }
-                updateConnectionStatus(true);
-            } catch (err) { console.error('Save error:', err); showToast('保存失败，请检查网络或激活代理'); updateConnectionStatus(false); }
+                const response = await fetch(getGistApiUrl(), { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${GITHUB_TOKEN}` }, body: JSON.stringify({ files: { 'chess-game.json': { content: JSON.stringify(gameState, null, 2) } } }) });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                updateConnectionStatus(true); hideError();
+            } catch (err) {
+                console.error('Save error:', err);
+                updateConnectionStatus(false);
+                showError('保存失败，点击重试切换代理');
+            }
             finally { isSyncing = false; }
         }
         
@@ -614,8 +645,7 @@
             if (!confirm('确定要认输吗？')) return;
             const winner = myColor === 'red' ? '黑方' : '红方';
             gameState.status = 'finished'; gameState.timerRunning = false;
-            const msg = `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`;
-            gameState.chat.push({ sender: 'system', text: msg, time: Date.now() });
+            gameState.chat.push({ sender: 'system', text: `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`, time: Date.now() });
             showToast(`你认输了，${winner}获胜！`); playSound('win');
             saveGame(); renderChat(); updateUI();
         }
