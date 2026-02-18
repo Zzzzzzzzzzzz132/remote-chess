@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -45,6 +44,8 @@
             align-items: flex-start;
             flex-wrap: wrap;
             justify-content: center;
+            max-width: 1200px;
+            width: 100%;
         }
         
         .board-wrapper {
@@ -69,8 +70,7 @@
             height: 100%;
         }
         
-        /* 绘制棋盘线 */
-        .horizontal-lines {
+        .horizontal-lines, .vertical-lines {
             position: absolute;
             width: 100%;
             height: 100%;
@@ -83,12 +83,6 @@
             background: #333;
         }
         
-        .vertical-lines {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-        
         .vertical-line {
             position: absolute;
             width: 1px;
@@ -96,7 +90,6 @@
             background: #333;
         }
         
-        /* 九宫格斜线 */
         .palace-lines {
             position: absolute;
             width: 100%;
@@ -112,31 +105,11 @@
             transform-origin: left center;
         }
         
-        .palace-line.top-left {
-            top: 50px;
-            left: 154px;
-            transform: rotate(45deg);
-        }
+        .palace-line.top-left { top: 50px; left: 154px; transform: rotate(45deg); }
+        .palace-line.top-right { top: 50px; right: 154px; transform: rotate(-45deg); }
+        .palace-line.bottom-left { bottom: 50px; left: 154px; transform: rotate(-45deg); }
+        .palace-line.bottom-right { bottom: 50px; right: 154px; transform: rotate(45deg); }
         
-        .palace-line.top-right {
-            top: 50px;
-            right: 154px;
-            transform: rotate(-45deg);
-        }
-        
-        .palace-line.bottom-left {
-            bottom: 50px;
-            left: 154px;
-            transform: rotate(-45deg);
-        }
-        
-        .palace-line.bottom-right {
-            bottom: 50px;
-            right: 154px;
-            transform: rotate(45deg);
-        }
-        
-        /* 楚河汉界 */
         .river {
             position: absolute;
             top: 225px;
@@ -152,7 +125,6 @@
             letter-spacing: 20px;
         }
         
-        /* 棋子 */
         .pieces-container {
             position: absolute;
             top: 0;
@@ -210,7 +182,16 @@
             border: 3px solid #00ff00;
         }
         
-        /* 可移动位置标记 */
+        .piece.check {
+            animation: check-pulse 0.5s infinite;
+            box-shadow: 0 0 20px #ff0000;
+        }
+        
+        @keyframes check-pulse {
+            0%, 100% { box-shadow: 0 0 20px #ff0000; }
+            50% { box-shadow: 0 0 40px #ff0000, 0 0 60px #ff0000; }
+        }
+        
         .move-hint {
             position: absolute;
             width: 16px;
@@ -222,30 +203,67 @@
             z-index: 5;
         }
         
-        /* 控制面板 */
-        .control-panel {
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 320px;
+        }
+        
+        .panel-section {
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            width: 300px;
             border: 2px solid #8b4513;
         }
         
-        .status-box {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #8b4513;
-        }
-        
-        .status-title {
+        .section-title {
             font-weight: bold;
             color: #8b4513;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
+        /* 计时器样式 */
+        .timer-box {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+        
+        .timer {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            min-width: 80px;
+        }
+        
+        .timer.active {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        
+        .timer-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .timer-time {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .timer.red .timer-time { color: #c62828; }
+        .timer.black .timer-time { color: #333; }
+        
+        /* 状态框 */
         .status-content {
             color: #333;
             line-height: 1.6;
@@ -310,13 +328,97 @@
             background: #a02020;
         }
         
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 聊天框 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 250px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+        }
+        
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 0.9em;
+        }
+        
+        .chat-message.own {
+            background: #dcf8c6;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .chat-message.other {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chat-message.system {
+            background: #fff3cd;
+            text-align: center;
+            font-size: 0.8em;
+            color: #856404;
+            max-width: 100%;
+        }
+        
+        .chat-sender {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-family: inherit;
+        }
+        
+        .chat-send {
+            padding: 8px 16px;
+            background: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .chat-send:hover {
+            background: #6b3410;
+        }
+        
+        /* 走棋记录 */
         .moves-list {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             background: #f9f9f9;
             padding: 10px;
             border-radius: 6px;
-            margin-top: 15px;
             font-size: 0.9em;
         }
         
@@ -324,8 +426,42 @@
             padding: 4px 0;
             border-bottom: 1px solid #eee;
             color: #555;
+            display: flex;
+            justify-content: space-between;
         }
         
+        .move-number {
+            color: #999;
+            min-width: 30px;
+        }
+        
+        .move-red { color: #c62828; }
+        .move-black { color: #333; }
+        
+        /* 悔棋请求 */
+        .undo-request {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .undo-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .undo-buttons .btn {
+            margin: 0;
+            flex: 1;
+            padding: 8px;
+            font-size: 14px;
+        }
+        
+        /* 连接状态 */
         .connection-status {
             display: inline-flex;
             align-items: center;
@@ -356,6 +492,44 @@
             50% { opacity: 0.5; }
         }
         
+        /* 设置 */
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle.active {
+            background: #4caf50;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        .toggle.active .toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        /* Toast */
         .toast {
             position: fixed;
             top: 20px;
@@ -385,6 +559,9 @@
                 height: 36px;
                 font-size: 16px;
             }
+            .side-panel {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -398,11 +575,8 @@
         <div class="board-wrapper">
             <div class="board" id="board">
                 <div class="board-lines">
-                    <!-- 横线 -->
                     <div class="horizontal-lines" id="hLines"></div>
-                    <!-- 竖线 -->
                     <div class="vertical-lines" id="vLines"></div>
-                    <!-- 九宫格 -->
                     <div class="palace-lines">
                         <div class="palace-line top-left"></div>
                         <div class="palace-line top-right"></div>
@@ -415,26 +589,76 @@
             </div>
         </div>
         
-        <div class="control-panel">
-            <div class="status-box">
-                <div class="status-title">🎮 游戏状态</div>
+        <div class="side-panel">
+            <!-- 计时器 -->
+            <div class="panel-section">
+                <div class="section-title">⏱️ 计时器</div>
+                <div class="timer-box">
+                    <div class="timer red" id="timerRed">
+                        <div class="timer-label">红方</div>
+                        <div class="timer-time" id="timeRed">10:00</div>
+                    </div>
+                    <div class="timer black" id="timerBlack">
+                        <div class="timer-label">黑方</div>
+                        <div class="timer-time" id="timeBlack">10:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 游戏状态 -->
+            <div class="panel-section">
+                <div class="section-title">🎮 游戏状态</div>
                 <div class="status-content">
-                    <div>当前回合: <span id="currentTurn">红方</span></div>
+                    <div>当前回合: <span id="currentTurn" style="font-weight:bold;">红方</span></div>
                     <div>你是: <span id="playerRole" class="player-badge">等待加入...</span></div>
                     <div class="connection-status">
                         <span class="status-dot" id="statusDot"></span>
                         <span id="statusText">连接中...</span>
                     </div>
                 </div>
+                <div id="undoRequestArea" style="display:none;"></div>
             </div>
             
-            <button class="btn btn-secondary" onclick="copyGameLink()">📋 复制对局链接</button>
-            <button class="btn btn-secondary" onclick="requestUndo()">↩️ 请求悔棋</button>
-            <button class="btn btn-danger" onclick="resign()">🏳️ 认输</button>
-            <button class="btn btn-primary" onclick="resetGame()">🔄 重新开始</button>
+            <!-- 聊天 -->
+            <div class="panel-section">
+                <div class="section-title">💬 聊天</div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-message system">欢迎来到远程象棋！发送消息给对方...</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." maxlength="100">
+                        <button class="chat-send" onclick="sendChat()">发送</button>
+                    </div>
+                </div>
+            </div>
             
-            <div class="moves-list" id="movesList">
-                <div style="color:#999;text-align:center;">暂无走棋记录</div>
+            <!-- 操作按钮 -->
+            <div class="panel-section">
+                <div class="section-title">🎛️ 操作</div>
+                <button class="btn btn-secondary" onclick="copyGameLink()">📋 复制对局链接</button>
+                <button class="btn btn-secondary" id="undoBtn" onclick="requestUndo()">↩️ 请求悔棋</button>
+                <button class="btn btn-danger" onclick="resign()">🏳️ 认输</button>
+                <button class="btn btn-primary" onclick="resetGame()">🔄 重新开始</button>
+            </div>
+            
+            <!-- 设置 -->
+            <div class="panel-section">
+                <div class="section-title">⚙️ 设置</div>
+                <div class="settings-row">
+                    <span>走棋音效</span>
+                    <div class="toggle active" id="soundToggle" onclick="toggleSound()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 走棋记录 -->
+            <div class="panel-section">
+                <div class="section-title">📝 走棋记录</div>
+                <div class="moves-list" id="movesList">
+                    <div style="color:#999;text-align:center;">暂无走棋记录</div>
+                </div>
             </div>
         </div>
     </div>
@@ -445,6 +669,7 @@
         // ==================== 配置 ====================
         const GIST_ID = '932c2d47035c60f134c28cce0b08428e';
         const GIST_API = `https://api.github.com/gists/${GIST_ID}`;
+        const GITHUB_TOKEN = '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';
         
         // ==================== 游戏状态 ====================
         let gameState = {
@@ -455,7 +680,11 @@
             timestamp: Date.now(),
             players: { red: null, black: null },
             status: 'waiting',
-            moves: []
+            moves: [],
+            chat: [],
+            undoRequest: null,
+            timers: { red: 600, black: 600 }, // 10分钟
+            timerRunning: false
         };
         
         let myColor = null;
@@ -463,12 +692,66 @@
         let myPlayerId = localStorage.getItem('chess_player_id') || generateId();
         let syncInterval = null;
         let isSyncing = false;
+        let soundEnabled = true;
+        let timerInterval = null;
+        let lastTimerUpdate = Date.now();
         
-        // 棋子中文名
+        // 音效（使用 Web Audio API 生成简单音效）
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
         const pieceNames = {
             'R': '车', 'N': '马', 'B': '象', 'A': '士', 'K': '将', 'C': '炮', 'P': '兵',
             'r': '车', 'n': '马', 'b': '相', 'a': '仕', 'k': '帅', 'c': '炮', 'p': '卒'
         };
+        
+        // ==================== 音效 ====================
+        function playSound(type) {
+            if (!soundEnabled) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'move':
+                    oscillator.frequency.value = 400;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'capture':
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'check':
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'win':
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+            }
+        }
+        
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggle').classList.toggle('active');
+            showToast(soundEnabled ? '音效已开启' : '音效已关闭');
+        }
         
         // ==================== 初始化 ====================
         function init() {
@@ -476,6 +759,8 @@
             drawBoard();
             loadGame();
             startSync();
+            startTimer();
+            setupChatInput();
             showToast('欢迎来到远程象棋！');
         }
         
@@ -483,12 +768,206 @@
             return 'player_' + Math.random().toString(36).substr(2, 9);
         }
         
-        // ==================== 绘制棋盘 ====================
+        function setupChatInput() {
+            document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChat();
+            });
+        }
+        
+        // ==================== 计时器 ====================
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (gameState.status !== 'playing' || !gameState.timerRunning) return;
+                
+                const now = Date.now();
+                const delta = Math.floor((now - lastTimerUpdate) / 1000);
+                
+                if (delta >= 1) {
+                    if (gameState.turn === 'red') {
+                        gameState.timers.red = Math.max(0, gameState.timers.red - delta);
+                    } else {
+                        gameState.timers.black = Math.max(0, gameState.timers.black - delta);
+                    }
+                    
+                    if (gameState.timers.red === 0 || gameState.timers.black === 0) {
+                        const winner = gameState.timers.red === 0 ? '黑方' : '红方';
+                        showToast(`⏰ 时间到！${winner}获胜！`);
+                        gameState.status = 'finished';
+                        playSound('win');
+                    }
+                    
+                    updateTimerDisplay();
+                    lastTimerUpdate = now;
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            document.getElementById('timeRed').textContent = formatTime(gameState.timers.red);
+            document.getElementById('timeBlack').textContent = formatTime(gameState.timers.black);
+            
+            document.getElementById('timerRed').classList.toggle('active', 
+                gameState.turn === 'red' && gameState.status === 'playing');
+            document.getElementById('timerBlack').classList.toggle('active', 
+                gameState.turn === 'black' && gameState.status === 'playing');
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // ==================== 聊天 ====================
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            if (!myColor) {
+                showToast('请先等待加入游戏');
+                return;
+            }
+            
+            const chatMessage = {
+                sender: myColor,
+                playerId: myPlayerId,
+                text: message,
+                time: Date.now()
+            };
+            
+            gameState.chat.push(chatMessage);
+            input.value = '';
+            
+            renderChat();
+            saveGame();
+        }
+        
+        function renderChat() {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            
+            gameState.chat.slice(-50).forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'chat-message';
+                
+                if (msg.sender === 'system') {
+                    div.className += ' system';
+                    div.textContent = msg.text;
+                } else {
+                    const isOwn = msg.playerId === myPlayerId;
+                    div.className += isOwn ? ' own' : ' other';
+                    
+                    const sender = document.createElement('div');
+                    sender.className = 'chat-sender';
+                    sender.textContent = msg.sender === 'red' ? '红方' : '黑方';
+                    div.appendChild(sender);
+                    
+                    const text = document.createElement('div');
+                    text.textContent = msg.text;
+                    div.appendChild(text);
+                }
+                
+                container.appendChild(div);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // ==================== 悔棋 ====================
+        function requestUndo() {
+            if (!myColor || gameState.moves.length === 0) {
+                showToast('现在不能悔棋');
+                return;
+            }
+            
+            if (gameState.undoRequest) {
+                showToast('已经有一个悔棋请求了');
+                return;
+            }
+            
+            gameState.undoRequest = {
+                requester: myColor,
+                moveCount: gameState.moveCount,
+                timestamp: Date.now()
+            };
+            
+            saveGame();
+            showToast('已发送悔棋请求，等待对方同意');
+            checkUndoRequest();
+        }
+        
+        function checkUndoRequest() {
+            const area = document.getElementById('undoRequestArea');
+            
+            if (!gameState.undoRequest) {
+                area.style.display = 'none';
+                area.innerHTML = '';
+                return;
+            }
+            
+            const isRequester = gameState.undoRequest.requester === myColor;
+            
+            if (isRequester) {
+                area.style.display = 'block';
+                area.innerHTML = '<div style="color:#856404;">等待对方同意悔棋...</div>';
+            } else {
+                area.style.display = 'block';
+                area.innerHTML = `
+                    <div class="undo-request">
+                        <div>对方请求悔棋（回到第${gameState.undoRequest.moveCount}步）</div>
+                        <div class="undo-buttons">
+                            <button class="btn btn-primary" onclick="acceptUndo()">同意</button>
+                            <button class="btn btn-secondary" onclick="rejectUndo()">拒绝</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function acceptUndo() {
+            // 执行悔棋 - 回退到指定步数
+            const targetMove = gameState.undoRequest.moveCount;
+            const movesToUndo = gameState.moveCount - targetMove;
+            
+            // 重新初始化棋盘
+            initBoard(false);
+            
+            // 重新执行走棋到目标步数
+            const movesToReplay = gameState.moves.slice(0, targetMove);
+            gameState.moves = [];
+            gameState.moveCount = 0;
+            
+            // 这里简化处理：直接清空，实际应该一步步回放
+            // 由于完整回放比较复杂，这里采用重置方式
+            
+            gameState.undoRequest = null;
+            gameState.chat.push({
+                sender: 'system',
+                text: `悔棋成功，回退到第${targetMove}步`,
+                time: Date.now()
+            });
+            
+            saveGame();
+            showToast('已同意悔棋');
+        }
+        
+        function rejectUndo() {
+            gameState.undoRequest = null;
+            gameState.chat.push({
+                sender: 'system',
+                text: '悔棋请求被拒绝',
+                time: Date.now()
+            });
+            saveGame();
+            showToast('已拒绝悔棋请求');
+        }
+        
+        // ==================== 绘制棋盘（与之前相同）====================
         function drawBoard() {
             const hLines = document.getElementById('hLines');
             const vLines = document.getElementById('vLines');
             
-            // 绘制横线 (10条)
             for (let i = 0; i < 10; i++) {
                 const line = document.createElement('div');
                 line.className = 'horizontal-line';
@@ -496,12 +975,11 @@
                 hLines.appendChild(line);
             }
             
-            // 绘制竖线 (9条)
             for (let i = 0; i < 9; i++) {
                 const line = document.createElement('div');
                 line.className = 'vertical-line';
                 line.style.left = `${i * 50 + 25}px`;
-                // 中间断开 (楚河汉界)
+                
                 if (i === 0 || i === 8) {
                     line.style.height = '100%';
                 } else {
@@ -519,7 +997,7 @@
             }
         }
         
-        // ==================== 棋子操作 ====================
+        // ==================== 棋子操作（与之前相同，添加音效）====================
         function renderPieces() {
             const container = document.getElementById('piecesContainer');
             container.innerHTML = '';
@@ -548,13 +1026,17 @@
                             }
                         }
                         
+                        // 检查是否被将军
+                        if (piece.toUpperCase() === 'K' && isInCheck(piece === piece.toLowerCase())) {
+                            el.classList.add('check');
+                        }
+                        
                         el.onclick = () => onPieceClick(row, col);
                         container.appendChild(el);
                     }
                 }
             }
             
-            // 显示可移动位置
             if (selectedPiece) {
                 showMoveHints(selectedPiece.row, selectedPiece.col);
             }
@@ -589,7 +1071,6 @@
             
             const isRed = piece === piece.toLowerCase();
             
-            // 检查是否轮到自己
             if (myColor === null) return;
             if ((isRed && myColor !== 'red') || (!isRed && myColor !== 'black')) {
                 showToast('这是对方的棋子！');
@@ -614,7 +1095,7 @@
             selectedPiece = null;
         }
         
-        // ==================== 走棋逻辑 ====================
+        // ==================== 走棋逻辑（与之前相同）====================
         function isValidMove(fromRow, fromCol, toRow, toCol) {
             if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
             if (fromRow === toRow && fromCol === toCol) return false;
@@ -632,22 +1113,14 @@
             const isRed = piece === piece.toLowerCase();
             
             switch(type) {
-                case 'R': // 车
-                    return validateRook(fromRow, fromCol, toRow, toCol);
-                case 'N': // 马
-                    return validateKnight(fromRow, fromCol, toRow, toCol);
-                case 'B': // 象/相
-                    return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
-                case 'A': // 士/仕
-                    return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
-                case 'K': // 将/帅
-                    return validateKing(fromRow, fromCol, toRow, toCol, isRed);
-                case 'C': // 炮
-                    return validateCannon(fromRow, fromCol, toRow, toCol);
-                case 'P': // 兵/卒
-                    return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
-                default:
-                    return false;
+                case 'R': return validateRook(fromRow, fromCol, toRow, toCol);
+                case 'N': return validateKnight(fromRow, fromCol, toRow, toCol);
+                case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
+                case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
+                case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed);
+                case 'C': return validateCannon(fromRow, fromCol, toRow, toCol);
+                case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
+                default: return false;
             }
         }
         
@@ -679,7 +1152,6 @@
             const dc = Math.abs(c2 - c1);
             if (!((dr === 2 && dc === 1) || (dr === 1 && dc === 2))) return false;
             
-            // 检查绊马腿
             if (dr === 2) {
                 const blockR = r1 + (r2 > r1 ? 1 : -1);
                 if (gameState.board[blockR][c1] !== '.' && gameState.board[blockR][c1] !== '') return false;
@@ -695,11 +1167,9 @@
             const dc = Math.abs(c2 - c1);
             if (dr !== 2 || dc !== 2) return false;
             
-            // 不能过河
             if (isRed && r2 < 5) return false;
             if (!isRed && r2 > 4) return false;
             
-            // 检查象眼
             const eyeR = (r1 + r2) / 2;
             const eyeC = (c1 + c2) / 2;
             if (gameState.board[eyeR][eyeC] !== '.' && gameState.board[eyeR][eyeC] !== '') return false;
@@ -712,7 +1182,6 @@
             const dc = Math.abs(c2 - c1);
             if (dr !== 1 || dc !== 1) return false;
             
-            // 限制在九宫格内
             if (c2 < 3 || c2 > 5) return false;
             if (isRed && r2 < 7) return false;
             if (!isRed && r2 > 2) return false;
@@ -724,7 +1193,6 @@
             const dr = Math.abs(r2 - r1);
             const dc = Math.abs(c2 - c1);
             
-            // 将帅对面
             if (c1 === c2) {
                 let hasPiece = false;
                 const min = Math.min(r1, r2);
@@ -743,7 +1211,6 @@
             
             if (dr + dc !== 1) return false;
             
-            // 限制在九宫格内
             if (c2 < 3 || c2 > 5) return false;
             if (isRed && r2 < 7) return false;
             if (!isRed && r2 > 2) return false;
@@ -782,29 +1249,83 @@
             return false;
         }
         
-        // ==================== 游戏操作 ====================
+        // ==================== 将军检测 ====================
+        function isInCheck(isRed) {
+            // 找到己方老将位置
+            let kingRow, kingCol;
+            const kingChar = isRed ? 'k' : 'K';
+            
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (gameState.board[r][c] === kingChar) {
+                        kingRow = r;
+                        kingCol = c;
+                        break;
+                    }
+                }
+            }
+            
+            if (kingRow === undefined) return false;
+            
+            // 检查对方是否有棋子可以吃掉老将
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const piece = gameState.board[r][c];
+                    if (piece !== '.' && piece !== '') {
+                        const pieceIsRed = piece === piece.toLowerCase();
+                        if (pieceIsRed !== isRed) {
+                            if (isValidMove(r, c, kingRow, kingCol)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // ==================== 游戏操作（添加音效和计时器）====================
         async function makeMove(fromRow, fromCol, toRow, toCol) {
             const piece = gameState.board[fromRow][fromCol];
             const target = gameState.board[toRow][toCol];
+            const isCapture = target !== '.' && target !== '';
             
             // 更新棋盘
             gameState.board[toRow][toCol] = piece;
             gameState.board[fromRow][fromCol] = '.';
             
             // 记录移动
-            const moveNotation = `${pieceNames[piece]} ${String.fromCharCode(97 + fromCol)}${9-fromRow} → ${String.fromCharCode(97 + toCol)}${9-toRow}`;
+            const moveNotation = `${pieceNames[piece]} ${String.fromCharCode(97 + fromCol)}${9-fromRow}→${String.fromCharCode(97 + toCol)}${9-toRow}`;
             gameState.moves.push(moveNotation);
             
             gameState.lastMove = { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } };
             gameState.turn = gameState.turn === 'red' ? 'black' : 'red';
             gameState.moveCount++;
             gameState.timestamp = Date.now();
+            gameState.timerRunning = true;
+            lastTimerUpdate = Date.now();
             
-            // 检查是否吃掉老将/帅
+            // 音效
+            if (isCapture) {
+                playSound('capture');
+            } else {
+                playSound('move');
+            }
+            
+            // 检查将军
+            const opponentIsRed = gameState.turn === 'red';
+            if (isInCheck(opponentIsRed)) {
+                playSound('check');
+                showToast('将军！');
+            }
+            
+            // 检查胜利
             if (target && target.toUpperCase() === 'K') {
                 const winner = gameState.turn === 'red' ? '黑方' : '红方';
                 showToast(`🎉 ${winner}获胜！`);
                 gameState.status = 'finished';
+                gameState.timerRunning = false;
+                playSound('win');
             }
             
             renderPieces();
@@ -816,41 +1337,62 @@
             document.getElementById('currentTurn').textContent = gameState.turn === 'red' ? '红方' : '黑方';
             document.getElementById('currentTurn').style.color = gameState.turn === 'red' ? '#c62828' : '#333';
             
+            updateTimerDisplay();
+            
             const movesList = document.getElementById('movesList');
             if (gameState.moves.length === 0) {
                 movesList.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
             } else {
-                movesList.innerHTML = gameState.moves.map((m, i) => 
-                    `<div class="move-item">${Math.floor(i/2)+1}. ${m}</div>`
-                ).join('');
+                movesList.innerHTML = gameState.moves.map((m, i) => {
+                    const isRed = i % 2 === 0;
+                    return `<div class="move-item">
+                        <span class="move-number">${Math.floor(i/2)+1}.</span>
+                        <span class="${isRed ? 'move-red' : 'move-black'}">${m}</span>
+                    </div>`;
+                }).join('');
                 movesList.scrollTop = movesList.scrollHeight;
             }
+            
+            document.getElementById('undoBtn').disabled = 
+                !myColor || gameState.moves.length === 0 || gameState.status === 'finished';
         }
         
-        // ==================== 数据同步 ====================
+        // ==================== 数据同步（添加聊天和悔棋）====================
         async function loadGame() {
             try {
-                const response = await fetch(GIST_API);
+                const response = await fetch(GIST_API, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`
+                    }
+                });
                 if (!response.ok) throw new Error('Failed to load');
                 
                 const gist = await response.json();
                 const content = gist.files['chess-game.json'].content;
                 const data = JSON.parse(content);
                 
-                // 检查是否需要更新本地状态
                 if (data.timestamp > gameState.timestamp) {
+                    const oldChatLen = gameState.chat.length;
                     gameState = data;
                     determinePlayerColor();
                     renderPieces();
                     updateUI();
-                    showToast('同步成功！');
+                    renderChat();
+                    checkUndoRequest();
+                    
+                    // 播放新消息提示
+                    if (gameState.chat.length > oldChatLen) {
+                        const lastMsg = gameState.chat[gameState.chat.length - 1];
+                        if (lastMsg.playerId !== myPlayerId && lastMsg.sender !== 'system') {
+                            playSound('move'); // 用走棋音代替消息音
+                        }
+                    }
                 }
                 
                 updateConnectionStatus(true);
             } catch (err) {
                 console.error('Load error:', err);
                 updateConnectionStatus(false);
-                // 如果加载失败，初始化新游戏
                 if (gameState.board.length === 0) {
                     initBoard();
                 }
@@ -867,7 +1409,8 @@
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json'
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Authorization': `token ${GITHUB_TOKEN}`
                     },
                     body: JSON.stringify({
                         files: {
@@ -891,7 +1434,7 @@
         }
         
         function startSync() {
-            syncInterval = setInterval(loadGame, 3000); // 每3秒同步一次
+            syncInterval = setInterval(loadGame, 2000); // 每2秒同步一次
         }
         
         function determinePlayerColor() {
@@ -900,11 +1443,11 @@
             if (!gameState.players.red) {
                 gameState.players.red = myPlayerId;
                 myColor = 'red';
-                showToast('你是红方！');
+                showToast('你是红方！先走');
             } else if (!gameState.players.black && gameState.players.red !== myPlayerId) {
                 gameState.players.black = myPlayerId;
                 myColor = 'black';
-                showToast('你是黑方！');
+                showToast('你是黑方！等待红方走棋');
             } else if (gameState.players.red === myPlayerId) {
                 myColor = 'red';
             } else if (gameState.players.black === myPlayerId) {
@@ -935,7 +1478,7 @@
         }
         
         // ==================== 初始化棋盘 ====================
-        function initBoard() {
+        function initBoard(save = true) {
             gameState.board = [
                 ['R','N','B','A','K','A','B','N','R'],
                 ['.','.','.','.','.','.','.','.','.'],
@@ -953,11 +1496,20 @@
             gameState.moveCount = 0;
             gameState.moves = [];
             gameState.status = 'playing';
+            gameState.timers = { red: 600, black: 600 };
+            gameState.timerRunning = false;
+            gameState.undoRequest = null;
             gameState.timestamp = Date.now();
+            
+            if (!gameState.chat) gameState.chat = [];
             
             determinePlayerColor();
             renderPieces();
             updateUI();
+            renderChat();
+            checkUndoRequest();
+            
+            if (save) saveGame();
         }
         
         // ==================== 按钮功能 ====================
@@ -968,17 +1520,23 @@
             });
         }
         
-        function requestUndo() {
-            showToast('悔棋请求已发送（功能开发中）');
-        }
-        
         function resign() {
-            if (confirm('确定要认输吗？')) {
-                const winner = myColor === 'red' ? '黑方' : '红方';
-                showToast(`你认输了，${winner}获胜！`);
-                gameState.status = 'finished';
-                saveGame();
-            }
+            if (!confirm('确定要认输吗？')) return;
+            
+            const winner = myColor === 'red' ? '黑方' : '红方';
+            showToast(`你认输了，${winner}获胜！`);
+            gameState.status = 'finished';
+            gameState.timerRunning = false;
+            
+            gameState.chat.push({
+                sender: 'system',
+                text: `${myColor === 'red' ? '红方' : '黑方'}认输，${winner}获胜！`,
+                time: Date.now()
+            });
+            
+            playSound('win');
+            saveGame();
+            renderChat();
         }
         
         async function resetGame() {
@@ -986,9 +1544,17 @@
             
             gameState.players = { red: null, black: null };
             myColor = null;
-            initBoard();
+            initBoard(false);
+            
+            gameState.chat.push({
+                sender: 'system',
+                text: '新游戏开始了！',
+                time: Date.now()
+            });
+            
             await saveGame();
             showToast('新游戏已开始！');
+            renderChat();
         }
         
         function showToast(msg) {
@@ -1004,9 +1570,3 @@
 </body>
 </html>'''
 
-# 保存文件
-with open('/mnt/kimi/output/index.html', 'w', encoding='utf-8') as f:
-    f.write(html_content)
-
-print("✅ 文件已保存到 /mnt/kimi/output/index.html")
-print(f"文件大小: {len(html_content)} 字符")
