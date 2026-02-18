@@ -3,28 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中国象棋 - AI对战1.0</title>
+    <title>中国象棋 - AI对战2.0</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Microsoft YaHei", "SimSun", sans-serif;
-            background: linear-gradient(135deg, #f5f5dc 0%, #e8dcc0 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            color: #eee;
         }
         .header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #8b4513; font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; }
-        .subtitle { color: #666; font-size: 1.1em; }
+        h1 { 
+            color: #ffd700; 
+            font-size: 2.5em; 
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            margin-bottom: 10px; 
+        }
+        .subtitle { color: #aaa; font-size: 1.1em; }
         .game-container {
             display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;
             justify-content: center; max-width: 1200px; width: 100%;
         }
         .board-wrapper {
             position: relative; background: #f0d9b5; padding: 40px;
-            border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 3px solid #8b4513;
         }
         .board { width: 450px; height: 500px; position: relative; background: #f0d9b5; }
@@ -74,57 +80,89 @@
         .move-hint:hover { background: rgba(0,255,0,0.9); transform: translate(-50%, -50%) scale(1.3); }
         .side-panel { display: flex; flex-direction: column; gap: 20px; width: 320px; }
         .panel-section {
-            background: white; padding: 20px; border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1); border: 2px solid #8b4513;
+            background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
         }
-        .section-title { font-weight: bold; color: #8b4513; margin-bottom: 15px; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
+        .section-title { font-weight: bold; color: #ffd700; margin-bottom: 15px; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
         .ai-status { 
-            background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; 
-            padding: 10px; text-align: center; font-size: 0.9em; color: #1976d2;
+            background: rgba(227,242,253,0.1); border: 2px solid #2196f3; border-radius: 8px; 
+            padding: 10px; text-align: center; font-size: 0.9em; color: #64b5f6;
         }
-        .ai-status.thinking { background: #fff3cd; border-color: #ffc107; color: #856404; }
-        .difficulty-selector { display: flex; gap: 10px; margin: 10px 0; }
+        .ai-status.thinking { background: rgba(255,243,205,0.2); border-color: #ffc107; color: #ffd54f; }
+        .ai-status.hell-mode { 
+            background: linear-gradient(45deg, #ff0000, #ff6600, #ff0000); 
+            background-size: 200% 200%;
+            animation: hell-glow 2s ease infinite;
+            border-color: #ff0000; color: #fff; font-weight: bold;
+        }
+        @keyframes hell-glow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .difficulty-selector { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
         .diff-btn { 
-            flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 6px; 
-            background: white; cursor: pointer; text-align: center; font-size: 0.9em;
+            flex: 1; min-width: 60px; padding: 10px; border: 2px solid #444; border-radius: 6px; 
+            background: rgba(0,0,0,0.3); color: #ccc; cursor: pointer; text-align: center; font-size: 0.9em;
+            transition: all 0.3s;
         }
-        .diff-btn:hover { border-color: #8b4513; }
-        .diff-btn.selected { border-color: #8b4513; background: #e8dcc0; font-weight: bold; }
-        .status-content { color: #333; line-height: 1.6; }
+        .diff-btn:hover { border-color: #666; color: #fff; }
+        .diff-btn.selected { border-color: #ffd700; background: rgba(255,215,0,0.2); color: #ffd700; font-weight: bold; }
+        .diff-btn.hell {
+            border-color: #ff0000;
+            background: linear-gradient(45deg, #330000, #660000);
+            color: #ff6666;
+            animation: hell-border 2s infinite;
+        }
+        .diff-btn.hell.selected {
+            background: linear-gradient(45deg, #ff0000, #ff6600);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        }
+        @keyframes hell-border {
+            0%, 100% { border-color: #ff0000; }
+            50% { border-color: #ff6600; }
+        }
+        .status-content { color: #ccc; line-height: 1.6; }
         .player-badge { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 0.9em; font-weight: bold; margin-top: 5px; }
         .player-badge.red { background: #ffeb3b; color: #c62828; }
         .player-badge.black { background: #333; color: #fff; }
         .btn { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: all 0.3s; font-family: inherit; }
         .btn-primary { background: #8b4513; color: white; }
         .btn-primary:hover { background: #6b3410; transform: translateY(-2px); }
-        .btn-secondary { background: #e0e0e0; color: #333; }
-        .btn-secondary:hover { background: #d0d0d0; }
+        .btn-secondary { background: #444; color: #fff; }
+        .btn-secondary:hover { background: #555; }
         .btn-danger { background: #c62828; color: white; }
         .btn-danger:hover { background: #a02020; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .moves-list { max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 6px; font-size: 0.9em; }
-        .move-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #555; display: flex; justify-content: space-between; }
-        .move-number { color: #999; min-width: 30px; }
-        .move-red { color: #c62828; }
-        .move-black { color: #333; }
+        .moves-list { max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; font-size: 0.9em; color: #ccc; }
+        .move-item { padding: 4px 0; border-bottom: 1px solid #444; display: flex; justify-content: space-between; }
+        .move-number { color: #666; min-width: 30px; }
+        .move-red { color: #ff6b6b; }
+        .move-black { color: #888; }
         .settings-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
-        .toggle { position: relative; width: 50px; height: 26px; background: #ccc; border-radius: 13px; cursor: pointer; transition: background 0.3s; }
+        .toggle { position: relative; width: 50px; height: 26px; background: #444; border-radius: 13px; cursor: pointer; transition: background 0.3s; }
         .toggle.active { background: #4caf50; }
         .toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.3s; }
         .toggle.active .toggle-slider { transform: translateX(24px); }
+        .api-key-input { 
+            width: 100%; padding: 8px; border: 1px solid #444; border-radius: 4px; 
+            font-family: monospace; font-size: 0.8em; margin-top: 5px; background: rgba(0,0,0,0.3); color: #fff;
+        }
+        .api-status { font-size: 0.75em; margin-top: 5px; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .api-status.ok { background: rgba(76,175,80,0.2); color: #4caf50; }
+        .api-status.error { background: rgba(244,67,54,0.2); color: #f44336; }
+        .api-status.local { background: rgba(255,152,0,0.2); color: #ff9800; }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 25px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
         .toast.show { opacity: 1; }
-        .api-key-input { 
-            width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; 
-            font-family: monospace; font-size: 0.8em; margin-top: 5px;
-        }
+        .toast.hell { background: linear-gradient(45deg, #ff0000, #ff6600); color: #fff; font-weight: bold; }
         @media (max-width: 800px) { .board { width: 360px; height: 400px; } .piece { width: 36px; height: 36px; font-size: 16px; } .side-panel { width: 100%; } }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🏮 中国象棋 🏮</h1>
-        <p class="subtitle">与AI对战，提升棋艺</p>
+        <p class="subtitle">与AI对战，挑战地狱模式</p>
     </div>
     
     <div class="game-container">
@@ -151,7 +189,10 @@
                 <div class="ai-status" id="aiStatus">
                     等待开始...
                 </div>
-                <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                <div id="apiStatusDisplay" style="margin-top: 10px; font-size: 0.85em;">
+                    <span class="api-status local">本地AI就绪</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.85em; color: #aaa;">
                     AI 执黑棋，你执红棋先行
                 </div>
             </div>
@@ -162,25 +203,35 @@
                     <div class="diff-btn selected" onclick="setDifficulty('easy')">入门</div>
                     <div class="diff-btn" onclick="setDifficulty('medium')">中级</div>
                     <div class="diff-btn" onclick="setDifficulty('hard')">高级</div>
+                    <div class="diff-btn hell" onclick="setDifficulty('hell')">🔥地狱</div>
+                </div>
+                <div id="hellModeInfo" style="display: none; margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 6px; font-size: 0.8em; color: #ff9999;">
+                    🔥 地狱模式：AI使用云端大模型+本地超强算法，几乎不可战胜！
                 </div>
             </div>
             
             <div class="panel-section">
-                <div class="section-title">🔑 API 设置（可选）</div>
-                <div style="font-size: 0.8em; color: #666; margin-bottom: 8px;">
-                    使用自己的 API Key 获得更好体验<br>
-                    留空使用默认（可能限速）
+                <div class="section-title">🔑 API 设置（地狱模式推荐）</div>
+                <div style="font-size: 0.8em; color: #aaa; margin-bottom: 8px;">
+                    使用国内免费API获得更强AI体验<br>
+                    留空则使用本地超强AI（地狱模式依然极强）
                 </div>
-                <input type="password" class="api-key-input" id="apiKey" placeholder="输入 Gemini API Key（可选）">
-                <div style="font-size: 0.75em; color: #999; margin-top: 5px;">
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #8b4513;">免费获取 Gemini Key</a>
+                <select class="api-key-input" id="apiProvider" style="margin-bottom: 8px;">
+                    <option value="zhipu">智谱AI (GLM-4-Flash 免费)</option>
+                    <option value="deepseek">DeepSeek (V3/R1)</option>
+                    <option value="moonshot">Kimi (Moonshot)</option>
+                </select>
+                <input type="password" class="api-key-input" id="apiKey" placeholder="输入 API Key（可选）">
+                <div style="font-size: 0.75em; color: #888; margin-top: 5px;">
+                    <a href="https://bigmodel.cn/usercenter/proj-mgmt/apikeys" target="_blank" style="color: #ffd700;">免费获取智谱Key</a> | 
+                    <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color: #ffd700;">DeepSeek</a>
                 </div>
             </div>
             
             <div class="panel-section">
                 <div class="section-title">🎮 游戏状态</div>
                 <div class="status-content">
-                    <div>当前回合: <span id="currentTurn" style="font-weight:bold;color:#c62828;">红方（你）</span></div>
+                    <div>当前回合: <span id="currentTurn" style="font-weight:bold;color:#ff6b6b;">红方（你）</span></div>
                     <div>你是: <span class="player-badge red">红方</span></div>
                 </div>
             </div>
@@ -211,7 +262,7 @@
             <div class="panel-section">
                 <div class="section-title">📝 走棋记录</div>
                 <div class="moves-list" id="movesList">
-                    <div style="color:#999;text-align:center;">暂无走棋记录</div>
+                    <div style="color:#666;text-align:center;">暂无走棋记录</div>
                 </div>
             </div>
         </div>
@@ -221,13 +272,33 @@
 
     <script>
         // ==================== 配置 ====================
-        // 默认使用免费的 Gemini API（可能有限速）
-        const DEFAULT_API_KEY = ''; // 用户需要自己输入或使用免费额度
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        
-        // 备用：使用本地简单AI（不调用API）
-        let useLocalAI = false;
-        
+        const API_CONFIG = {
+            zhipu: {
+                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                model: 'glm-4-flash',
+                headers: (key) => ({
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json'
+                })
+            },
+            deepseek: {
+                url: 'https://api.deepseek.com/v1/chat/completions',
+                model: 'deepseek-chat',
+                headers: (key) => ({
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json'
+                })
+            },
+            moonshot: {
+                url: 'https://api.moonshot.cn/v1/chat/completions',
+                model: 'moonshot-v1-8k',
+                headers: (key) => ({
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json'
+                })
+            }
+        };
+
         // ==================== 游戏状态 ====================
         let gameState = {
             board: [],
@@ -238,19 +309,82 @@
             moves: [],
             difficulty: 'easy'
         };
-        
+
         let selectedPiece = null;
         let soundEnabled = true;
         let hintEnabled = true;
         let isAIThinking = false;
         let moveHistory = [];
-        
+        let apiFailCount = 0;
+        let lastApiError = null;
+
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const pieceNames = {
-            'R': '车', 'N': '马', 'B': '象', 'A': '士', 'K': '将', 'C': '炮', 'P': '兵',
-            'r': '车', 'n': '马', 'b': '相', 'a': '仕', 'k': '帅', 'c': '炮', 'p': '卒'
+            'R': '车', 'N': '马', 'B': '象', 'A': '士', 'K': '将', 'C': '炮', 'P': '卒',
+            'r': '车', 'n': '马', 'b': '相', 'a': '仕', 'k': '帅', 'c': '炮', 'p': '兵'
         };
         
+        const pieceValues = {
+            'K': 10000, 'k': 10000,
+            'R': 900, 'r': 900,
+            'C': 450, 'c': 450,
+            'N': 400, 'n': 400,
+            'B': 200, 'b': 200,
+            'A': 200, 'a': 200,
+            'P': 100, 'p': 100
+        };
+
+        const positionBonus = {
+            'P': [ // 卒（黑方，需要翻转）
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [20, 20, 20, 20, 20, 20, 20, 20, 20],
+                [10, 10, 10, 10, 10, 10, 10, 10, 10],
+                [5, 5, 5, 5, 5, 5, 5, 5, 5],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            ],
+            'N': [ // 马
+                [0, -5, 0, 0, 0, 0, 0, -5, 0],
+                [0, 0, 0, 5, 5, 5, 0, 0, 0],
+                [0, 0, 10, 10, 10, 10, 10, 0, 0],
+                [0, 5, 10, 15, 15, 15, 10, 5, 0],
+                [5, 10, 15, 20, 20, 20, 15, 10, 5],
+                [5, 10, 15, 20, 20, 20, 15, 10, 5],
+                [0, 5, 10, 15, 15, 15, 10, 5, 0],
+                [0, 0, 10, 10, 10, 10, 10, 0, 0],
+                [0, 0, 0, 5, 5, 5, 0, 0, 0],
+                [0, -5, 0, 0, 0, 0, 0, -5, 0]
+            ],
+            'R': [ // 车
+                [0, 0, 10, 10, 10, 10, 10, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 10, 10, 10, 10, 10, 0, 0]
+            ],
+            'C': [ // 炮
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 5, 0, 0, 0, 0, 0, 5, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 5, 0, 0, 0, 0, 0, 5, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            ]
+        };
+
         // ==================== 音效 ====================
         function playSound(type) {
             if (!soundEnabled) return;
@@ -264,6 +398,16 @@
                 case 'check': oscillator.frequency.value = 800; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.3); break;
                 case 'win': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.5); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.5); break;
                 case 'select': oscillator.frequency.value = 600; gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05); oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + 0.05); break;
+                case 'hell': 
+                    // 地狱模式音效
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.value = 100; 
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime); 
+                    oscillator.stop(audioContext.currentTime + 0.5); 
+                    break;
             }
         }
         
@@ -274,7 +418,16 @@
             gameState.difficulty = level;
             document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
             event.target.classList.add('selected');
-            showToast(`难度设置为: ${level === 'easy' ? '入门' : level === 'medium' ? '中级' : '高级'}`);
+            
+            const hellInfo = document.getElementById('hellModeInfo');
+            if (level === 'hell') {
+                hellInfo.style.display = 'block';
+                playSound('hell');
+                showToast('🔥 地狱模式已开启！AI将全力以赴！', true);
+            } else {
+                hellInfo.style.display = 'none';
+                showToast(`难度设置为: ${level === 'easy' ? '入门' : level === 'medium' ? '中级' : '高级'}`);
+            }
         }
         
         // ==================== 初始化 ====================
@@ -305,7 +458,10 @@
             moveHistory = [];
             selectedPiece = null;
             isAIThinking = false;
+            apiFailCount = 0;
+            lastApiError = null;
             updateAIStatus('等待开始...');
+            updateApiStatus('local');
             renderPieces();
             updateUI();
             showToast('游戏开始！红方先行');
@@ -349,7 +505,7 @@
             const piece = gameState.board[row][col];
             if (!piece || piece === '.') return;
             const isRed = piece === piece.toLowerCase();
-            if (!isRed) return; // 只能选红棋（玩家）
+            if (!isRed) return;
             if (gameState.turn !== 'red') return;
             for (let r = 0; r < 10; r++) {
                 for (let c = 0; c < 9; c++) {
@@ -366,35 +522,33 @@
         }
         
         function onPieceClick(row, col) {
-    if (isAIThinking) { showToast('AI思考中，请稍候...'); return; }
-    if (gameState.status !== 'playing') { showToast('游戏已结束！'); return; }
-    if (gameState.turn !== 'red') { showToast('还没轮到你！'); return; }
-    
-    const piece = gameState.board[row][col];
-    if (!piece || piece === '.') return;
-    
-    const isRed = piece === piece.toLowerCase(); // true=红棋(玩家), false=黑棋(AI)
-    
-    // 如果已经选中了棋子，尝试移动或吃子
-    if (selectedPiece) {
-        if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
-            makeMove(selectedPiece.row, selectedPiece.col, row, col);
-            selectedPiece = null;
-            return;
+            if (isAIThinking) { showToast('AI思考中，请稍候...'); return; }
+            if (gameState.status !== 'playing') { showToast('游戏已结束！'); return; }
+            if (gameState.turn !== 'red') { showToast('还没轮到你！'); return; }
+            
+            const piece = gameState.board[row][col];
+            if (!piece || piece === '.') return;
+            
+            const isRed = piece === piece.toLowerCase();
+            
+            if (selectedPiece) {
+                if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                    makeMove(selectedPiece.row, selectedPiece.col, row, col);
+                    selectedPiece = null;
+                    return;
+                }
+            }
+            
+            if (!isRed) {
+                showToast('这是AI的棋子');
+                return;
+            }
+            
+            playSound('select');
+            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) selectedPiece = null;
+            else selectedPiece = { row, col, piece };
+            renderPieces();
         }
-    }
-    
-    // 只能选自己的红棋
-    if (!isRed) {
-        showToast('这是AI的棋子');
-        return;
-    }
-    
-    playSound('select');
-    if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) selectedPiece = null;
-    else selectedPiece = { row, col, piece };
-    renderPieces();
-}
         
         function onHintClick(row, col) {
             if (!selectedPiece || isAIThinking) return;
@@ -403,73 +557,73 @@
         }
         
         // ==================== 走棋逻辑 ====================
-        function isValidMove(fromRow, fromCol, toRow, toCol) {
+        function isValidMove(fromRow, fromCol, toRow, toCol, board = gameState.board) {
             if (toRow < 0 || toRow > 9 || toCol < 0 || toCol > 8) return false;
             if (fromRow === toRow && fromCol === toCol) return false;
-            const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol];
+            const piece = board[fromRow][fromCol], target = board[toRow][toCol];
             if (target !== '.' && target !== '') { const isRedPiece = piece === piece.toLowerCase(), isRedTarget = target === target.toLowerCase(); if (isRedPiece === isRedTarget) return false; }
             const type = piece.toUpperCase(), isRed = piece === piece.toLowerCase();
             switch(type) {
-                case 'R': return validateRook(fromRow, fromCol, toRow, toCol);
-                case 'N': return validateKnight(fromRow, fromCol, toRow, toCol);
-                case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed);
-                case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed);
-                case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed);
-                case 'C': return validateCannon(fromRow, fromCol, toRow, toCol);
-                case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed);
+                case 'R': return validateRook(fromRow, fromCol, toRow, toCol, board);
+                case 'N': return validateKnight(fromRow, fromCol, toRow, toCol, board);
+                case 'B': return validateBishop(fromRow, fromCol, toRow, toCol, isRed, board);
+                case 'A': return validateAdvisor(fromRow, fromCol, toRow, toCol, isRed, board);
+                case 'K': return validateKing(fromRow, fromCol, toRow, toCol, isRed, board);
+                case 'C': return validateCannon(fromRow, fromCol, toRow, toCol, board);
+                case 'P': return validatePawn(fromRow, fromCol, toRow, toCol, isRed, board);
                 default: return false;
             }
         }
         
-        function countPiecesBetween(r1, c1, r2, c2) {
+        function countPiecesBetween(r1, c1, r2, c2, board) {
             let count = 0;
-            if (r1 === r2) { const min = Math.min(c1, c2), max = Math.max(c1, c2); for (let c = min + 1; c < max; c++) if (gameState.board[r1][c] !== '.' && gameState.board[r1][c] !== '') count++; }
-            else if (c1 === c2) { const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') count++; }
+            if (r1 === r2) { const min = Math.min(c1, c2), max = Math.max(c1, c2); for (let c = min + 1; c < max; c++) if (board[r1][c] !== '.' && board[r1][c] !== '') count++; }
+            else if (c1 === c2) { const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (board[r][c1] !== '.' && board[r][c1] !== '') count++; }
             return count;
         }
         
-        function validateRook(r1, c1, r2, c2) { if (r1 !== r2 && c1 !== c2) return false; return countPiecesBetween(r1, c1, r2, c2) === 0; }
-        function validateKnight(r1, c1, r2, c2) {
+        function validateRook(r1, c1, r2, c2, board) { if (r1 !== r2 && c1 !== c2) return false; return countPiecesBetween(r1, c1, r2, c2, board) === 0; }
+        function validateKnight(r1, c1, r2, c2, board) {
             const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (!((dr === 2 && dc === 1) || (dr === 1 && dc === 2))) return false;
-            if (dr === 2) { const blockR = r1 + (r2 > r1 ? 1 : -1); if (gameState.board[blockR][c1] !== '.' && gameState.board[blockR][c1] !== '') return false; }
-            else { const blockC = c1 + (c2 > c1 ? 1 : -1); if (gameState.board[r1][blockC] !== '.' && gameState.board[r1][blockC] !== '') return false; }
+            if (dr === 2) { const blockR = r1 + (r2 > r1 ? 1 : -1); if (board[blockR][c1] !== '.' && board[blockR][c1] !== '') return false; }
+            else { const blockC = c1 + (c2 > c1 ? 1 : -1); if (board[r1][blockC] !== '.' && board[r1][blockC] !== '') return false; }
             return true;
         }
-        function validateBishop(r1, c1, r2, c2, isRed) {
+        function validateBishop(r1, c1, r2, c2, isRed, board) {
             const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 2 || dc !== 2) return false;
             if (isRed && r2 < 5) return false; if (!isRed && r2 > 4) return false;
-            const eyeR = (r1 + r2) / 2, eyeC = (c1 + c2) / 2; if (gameState.board[eyeR][eyeC] !== '.' && gameState.board[eyeR][eyeC] !== '') return false;
+            const eyeR = (r1 + r2) / 2, eyeC = (c1 + c2) / 2; if (board[eyeR][eyeC] !== '.' && board[eyeR][eyeC] !== '') return false;
             return true;
         }
-        function validateAdvisor(r1, c1, r2, c2, isRed) {
+        function validateAdvisor(r1, c1, r2, c2, isRed, board) {
             const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1); if (dr !== 1 || dc !== 1) return false;
             if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
             return true;
         }
-        function validateKing(r1, c1, r2, c2, isRed) {
+        function validateKing(r1, c1, r2, c2, isRed, board) {
             const dr = Math.abs(r2 - r1), dc = Math.abs(c2 - c1);
-            if (c1 === c2) { let hasPiece = false; const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (gameState.board[r][c1] !== '.' && gameState.board[r][c1] !== '') { hasPiece = true; break; } if (!hasPiece) { const target = gameState.board[r2][c2]; if (target && (target.toUpperCase() === 'K')) return true; } }
+            if (c1 === c2) { let hasPiece = false; const min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (board[r][c1] !== '.' && board[r][c1] !== '') { hasPiece = true; break; } if (!hasPiece) { const target = board[r2][c2]; if (target && (target.toUpperCase() === 'K')) return true; } }
             if (dr + dc !== 1) return false; if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false;
             return true;
         }
-        function validateCannon(r1, c1, r2, c2) {
+        function validateCannon(r1, c1, r2, c2, board) {
             if (r1 !== r2 && c1 !== c2) return false;
-            const count = countPiecesBetween(r1, c1, r2, c2), target = gameState.board[r2][c2];
+            const count = countPiecesBetween(r1, c1, r2, c2, board), target = board[r2][c2];
             if (target === '.' || target === '') return count === 0;
             else return count === 1;
         }
-        function validatePawn(r1, c1, r2, c2, isRed) {
+        function validatePawn(r1, c1, r2, c2, isRed, board) {
             const dr = r2 - r1, dc = Math.abs(c2 - c1);
             if (isRed) { if (dr > 0) return false; if (r1 >= 5 && dc !== 0) return false; if (dr === -1 && dc === 0) return true; if (r1 < 5 && dr === 0 && dc === 1) return true; }
             else { if (dr < 0) return false; if (r1 <= 4 && dc !== 0) return false; if (dr === 1 && dc === 0) return true; if (r1 > 4 && dr === 0 && dc === 1) return true; }
             return false;
         }
         
-        function isInCheck(isRed) {
+        function isInCheck(isRed, board = gameState.board) {
             let kingRow, kingCol; const kingChar = isRed ? 'k' : 'K';
-            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) if (gameState.board[r][c] === kingChar) { kingRow = r; kingCol = c; break; }
+            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) if (board[r][c] === kingChar) { kingRow = r; kingCol = c; break; }
             if (kingRow === undefined) return false;
-            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) { const piece = gameState.board[r][c]; if (piece !== '.' && piece !== '') { const pieceIsRed = piece === piece.toLowerCase(); if (pieceIsRed !== isRed) if (isValidMove(r, c, kingRow, kingCol)) return true; } }
+            for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) { const piece = board[r][c]; if (piece !== '.' && piece !== '') { const pieceIsRed = piece === piece.toLowerCase(); if (pieceIsRed !== isRed) if (isValidMove(r, c, kingRow, kingCol, board)) return true; } }
             return false;
         }
         
@@ -477,7 +631,6 @@
         async function makeMove(fromRow, fromCol, toRow, toCol) {
             const piece = gameState.board[fromRow][fromCol], target = gameState.board[toRow][toCol], isCapture = target !== '.' && target !== '';
             
-            // 保存历史
             moveHistory.push(JSON.parse(JSON.stringify(gameState.board)));
             
             gameState.board[toRow][toCol] = piece;
@@ -493,7 +646,7 @@
             
             if (target && target.toUpperCase() === 'K') {
                 const winner = opponentIsRed ? '黑方' : '红方';
-                showToast(`🎉 ${winner}获胜！`);
+                showToast(`🎉 ${winner}获胜！`, gameState.difficulty === 'hell');
                 gameState.status = 'finished';
                 playSound('win');
                 updateAIStatus('游戏结束');
@@ -506,7 +659,6 @@
             updateUI();
             renderPieces();
             
-            // AI 走棋
             if (gameState.turn === 'black' && gameState.status === 'playing') {
                 setTimeout(() => aiMove(), 500);
             }
@@ -516,14 +668,14 @@
             const turnText = document.getElementById('currentTurn');
             if (gameState.turn === 'red') {
                 turnText.textContent = '红方（你）';
-                turnText.style.color = '#c62828';
+                turnText.style.color = '#ff6b6b';
             } else {
                 turnText.textContent = '黑方（AI）';
-                turnText.style.color = '#333';
+                turnText.style.color = '#888';
             }
             
             const movesList = document.getElementById('movesList');
-            if (gameState.moves.length === 0) movesList.innerHTML = '<div style="color:#999;text-align:center;">暂无走棋记录</div>';
+            if (gameState.moves.length === 0) movesList.innerHTML = '<div style="color:#666;text-align:center;">暂无走棋记录</div>';
             else {
                 movesList.innerHTML = gameState.moves.map((m, i) => {
                     const isRed = i % 2 === 0;
@@ -533,10 +685,17 @@
             }
         }
         
-        function updateAIStatus(text) {
+        function updateAIStatus(text, isHell = false) {
             const status = document.getElementById('aiStatus');
             status.textContent = text;
-            status.className = 'ai-status' + (text.includes('思考') ? ' thinking' : '');
+            status.className = 'ai-status' + (isHell ? ' hell-mode' : (text.includes('思考') ? ' thinking' : ''));
+        }
+
+        function updateApiStatus(status, message = '') {
+            const display = document.getElementById('apiStatusDisplay');
+            const statusClass = status === 'ok' ? 'ok' : (status === 'error' ? 'error' : 'local');
+            const statusText = status === 'ok' ? '云端AI已连接' : (status === 'error' ? `API失败(${message})` : '本地AI运行中');
+            display.innerHTML = `<span class="api-status ${statusClass}">${statusText}</span>`;
         }
         
         // ==================== AI 走棋 ====================
@@ -544,35 +703,46 @@
             if (gameState.status !== 'playing') return;
             
             isAIThinking = true;
-            updateAIStatus('AI 思考中...');
+            const isHell = gameState.difficulty === 'hell';
+            updateAIStatus(isHell ? '🔥 地狱AI正在计算杀招...' : 'AI 思考中...', isHell);
             renderPieces();
             
             try {
                 let move;
                 const apiKey = document.getElementById('apiKey').value.trim();
+                const provider = document.getElementById('apiProvider').value;
                 
-                if (apiKey && !useLocalAI) {
-                    // 使用 Gemini API
-                    move = await getAIMoveFromAPI(apiKey);
+                // 地狱模式优先尝试API
+                if (isHell && apiKey && apiFailCount < 3) {
+                    try {
+                        move = await getAIMoveFromAPI(apiKey, provider);
+                        updateApiStatus('ok');
+                    } catch (err) {
+                        apiFailCount++;
+                        lastApiError = err.message;
+                        updateApiStatus('error', '切换到本地');
+                        console.warn('API failed, falling back to local AI:', err);
+                        move = getLocalAIMove();
+                    }
                 } else {
-                    // 使用本地简单AI
+                    if (isHell && !apiKey) {
+                        updateApiStatus('local', '地狱本地');
+                    }
                     move = getLocalAIMove();
                 }
                 
                 if (move) {
                     const { from, to } = move;
                     makeMove(from.row, from.col, to.row, to.col);
-                    updateAIStatus('等待你走棋...');
+                    updateAIStatus(isHell ? '🔥 地狱AI等待你受死...' : '等待你走棋...', isHell);
                 } else {
-                    // AI 无法走棋，可能被困
-                    showToast('AI 认输！你赢了！');
+                    showToast('AI 认输！你赢了！', isHell);
                     gameState.status = 'finished';
                     playSound('win');
                     updateAIStatus('AI 认输');
                 }
             } catch (err) {
                 console.error('AI error:', err);
-                // API 失败，使用本地AI
                 const move = getLocalAIMove();
                 if (move) {
                     const { from, to } = move;
@@ -585,97 +755,210 @@
             }
         }
         
-        // 本地简单AI（基于规则 + 随机）
+        // ==================== 本地AI（地狱模式增强版） ====================
         function getLocalAIMove() {
-            const validMoves = [];
+            const isHell = gameState.difficulty === 'hell';
+            const depth = isHell ? 4 : (gameState.difficulty === 'hard' ? 3 : (gameState.difficulty === 'medium' ? 2 : 1));
             
-            // 收集所有合法走法
+            // 使用Alpha-Beta剪枝
+            const result = alphaBetaSearch(depth, -Infinity, Infinity, true);
+            
+            if (result.move) {
+                return result.move;
+            }
+            
+            // 回退：随机选择合法走法
+            const validMoves = getAllValidMoves(true);
+            if (validMoves.length === 0) return null;
+            return validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+
+        function alphaBetaSearch(depth, alpha, beta, isMaximizing) {
+            if (depth === 0) {
+                return { score: evaluateBoard(), move: null };
+            }
+
+            const moves = getAllValidMoves(isMaximizing);
+            
+            // 将军检测优先
+            const checkMoves = moves.filter(m => {
+                const testBoard = simulateMove(m.from.row, m.from.col, m.to.row, m.to.col);
+                return isInCheck(true, testBoard); // 检测是否将军红方
+            });
+
+            // 排序：吃子、将军、普通
+            moves.sort((a, b) => {
+                const scoreA = getMovePriority(a);
+                const scoreB = getMovePriority(b);
+                return scoreB - scoreA;
+            });
+
+            let bestMove = null;
+
+            if (isMaximizing) { // AI (黑方) 最大化
+                let maxEval = -Infinity;
+                for (const move of moves) {
+                    const testBoard = simulateMove(move.from.row, move.from.col, move.to.row, move.to.col);
+                    const evalScore = alphaBetaSearch(depth - 1, alpha, beta, false, testBoard).score;
+                    
+                    if (evalScore > maxEval) {
+                        maxEval = evalScore;
+                        bestMove = move;
+                    }
+                    alpha = Math.max(alpha, evalScore);
+                    if (beta <= alpha) break;
+                }
+                return { score: maxEval, move: bestMove };
+            } else { // 最小化（假设对手最佳）
+                let minEval = Infinity;
+                for (const move of getAllValidMoves(false)) {
+                    const testBoard = simulateMove(move.from.row, move.from.col, move.to.row, move.to.col);
+                    const evalScore = alphaBetaSearch(depth - 1, alpha, beta, true, testBoard).score;
+                    
+                    minEval = Math.min(minEval, evalScore);
+                    beta = Math.min(beta, evalScore);
+                    if (beta <= alpha) break;
+                }
+                return { score: minEval, move: null };
+            }
+        }
+
+        function getMovePriority(move) {
+            const piece = gameState.board[move.from.row][move.from.col];
+            const target = gameState.board[move.to.row][move.to.col];
+            let score = 0;
+            
+            if (target !== '.') {
+                score += pieceValues[target] * 10; // 吃子加分
+            }
+            
+            // 位置加分
+            const type = piece.toUpperCase();
+            if (positionBonus[type]) {
+                const bonus = positionBonus[type][move.to.row][move.to.col];
+                score += bonus;
+            }
+            
+            return score;
+        }
+
+        function getAllValidMoves(forBlack) {
+            const moves = [];
             for (let r = 0; r < 10; r++) {
                 for (let c = 0; c < 9; c++) {
                     const piece = gameState.board[r][c];
-                    if (piece !== '.' && piece === piece.toUpperCase()) { // 黑棋（AI）
-                        for (let tr = 0; tr < 10; tr++) {
-                            for (let tc = 0; tc < 9; tc++) {
-                                if (isValidMove(r, c, tr, tc)) {
-                                    const target = gameState.board[tr][tc];
-                                    let score = 0;
-                                    
-                                    // 评分系统
-                                    if (target !== '.') {
-                                        // 吃子得分
-                                        const targetType = target.toLowerCase();
-                                        const pieceValues = { 'p': 10, 'c': 45, 'r': 90, 'n': 40, 'b': 20, 'a': 20, 'k': 1000 };
-                                        score += pieceValues[targetType] || 10;
+                    if (piece !== '.' && piece !== '') {
+                        const isBlackPiece = piece === piece.toUpperCase();
+                        if (isBlackPiece === forBlack) {
+                            for (let tr = 0; tr < 10; tr++) {
+                                for (let tc = 0; tc < 9; tc++) {
+                                    if (isValidMove(r, c, tr, tc)) {
+                                        moves.push({
+                                            from: { row: r, col: c },
+                                            to: { row: tr, col: tc },
+                                            piece: piece,
+                                            target: gameState.board[tr][tc]
+                                        });
                                     }
-                                    
-                                    // 将军奖励
-                                    const testBoard = JSON.parse(JSON.stringify(gameState.board));
-                                    testBoard[tr][tc] = piece;
-                                    testBoard[r][c] = '.';
-                                    const originalBoard = gameState.board;
-                                    gameState.board = testBoard;
-                                    if (isInCheck(true)) score += 50; // 将军红方
-                                    gameState.board = originalBoard;
-                                    
-                                    // 难度调整
-                                    if (gameState.difficulty === 'easy') score *= 0.5;
-                                    if (gameState.difficulty === 'hard') score *= 1.5;
-                                    
-                                    validMoves.push({ from: { row: r, col: c }, to: { row: tr, col: tc }, score: score + Math.random() * 10 });
                                 }
                             }
                         }
                     }
                 }
             }
-            
-            if (validMoves.length === 0) return null;
-            
-            // 根据难度选择
-            validMoves.sort((a, b) => b.score - a.score);
-            
-            if (gameState.difficulty === 'easy') {
-                // 入门：从前50%随机选
-                const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.5));
-                return topMoves[Math.floor(Math.random() * topMoves.length)];
-            } else if (gameState.difficulty === 'medium') {
-                // 中级：从前30%随机选
-                const topMoves = validMoves.slice(0, Math.ceil(validMoves.length * 0.3));
-                return topMoves[Math.floor(Math.random() * topMoves.length)];
-            } else {
-                // 高级：选最优
-                return validMoves[0];
+            return moves;
+        }
+
+        function simulateMove(fromRow, fromCol, toRow, toCol, board = gameState.board) {
+            const newBoard = JSON.parse(JSON.stringify(board));
+            newBoard[toRow][toCol] = newBoard[fromRow][fromCol];
+            newBoard[fromRow][fromCol] = '.';
+            return newBoard;
+        }
+
+        function evaluateBoard() {
+            let score = 0;
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const piece = gameState.board[r][c];
+                    if (piece !== '.' && piece !== '') {
+                        const value = pieceValues[piece] || 0;
+                        const isBlack = piece === piece.toUpperCase();
+                        
+                        // 基础子力价值
+                        if (isBlack) score += value;
+                        else score -= value;
+                        
+                        // 位置加分
+                        const type = piece.toUpperCase();
+                        if (positionBonus[type]) {
+                            const bonus = positionBonus[type][r][c];
+                            if (isBlack) score += bonus;
+                            else score -= bonus;
+                        }
+                        
+                        // 灵活性加分
+                        let mobility = 0;
+                        for (let tr = 0; tr < 10; tr++) {
+                            for (let tc = 0; tc < 9; tc++) {
+                                if (isValidMove(r, c, tr, tc, gameState.board)) {
+                                    mobility++;
+                                }
+                            }
+                        }
+                        if (isBlack) score += mobility * 10;
+                        else score -= mobility * 10;
+                    }
+                }
             }
+            
+            // 将军额外加分
+            if (isInCheck(true)) score += 500; // 红方被将军，黑方加分
+            if (isInCheck(false)) score -= 500; // 黑方被将军，黑方减分
+            
+            return score;
         }
         
-        // Gemini API
-        async function getAIMoveFromAPI(apiKey) {
-            const boardStr = gameState.board.map(row => row.join('')).join('\n');
-            const prompt = `你是中国象棋AI，执黑棋（大写字母）。当前棋盘：
+        // ==================== API AI ====================
+        async function getAIMoveFromAPI(apiKey, provider) {
+            const boardStr = gameState.board.map((row, r) => 
+                row.map((p, c) => {
+                    if (p === '.') return ' . ';
+                    return ` ${p} `;
+                }).join('')
+            ).join('\n');
+            
+            const prompt = `你是中国象棋特级大师，执黑棋（大写字母）。当前局面：
+
 ${boardStr}
- 
-棋盘说明：
-- 小写字母 rnbakcp 是红方（对手）的棋子：r车 n马 b象 a士 k帅 c炮 p兵
-- 大写字母 RNB AKCP 是你的棋子：R车 N马 B象 A士 K将 C炮 P卒
-- 你是黑方，要最大化你的优势
- 
-请分析局面，选择最佳走法。只回复格式：fromRow,fromCol,toRow,toCol
-例如：0,0,0,1 表示从(0,0)移动到(0,1)`;
- 
-            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+
+棋盘坐标：行0-9（从上到下），列0-8（从左到右）。
+你是黑方（大写），要赢棋。
+
+请给出最佳走法，只回复格式：fromRow,fromCol,toRow,toCol
+例如：3,0,4,0`;
+
+            const config = API_CONFIG[provider];
+            
+            const response = await fetch(config.url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: config.headers(apiKey),
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.2, maxOutputTokens: 50 }
+                    model: config.model,
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.1,
+                    max_tokens: 50
                 })
             });
             
-            if (!response.ok) throw new Error('API failed');
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`API error: ${response.status} - ${error}`);
+            }
             
             const data = await response.json();
-            const text = data.candidates[0].content.parts[0].text;
-            const match = text.match(/(\d+),(\d+),(\d+),(\d+)/);
+            const text = data.choices[0].message.content;
+            const match = text.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
             
             if (match) {
                 const [_, fr, fc, tr, tc] = match.map(Number);
@@ -684,8 +967,7 @@ ${boardStr}
                 }
             }
             
-            // API 返回不合法，回退到本地AI
-            return getLocalAIMove();
+            throw new Error('Invalid move format from API');
         }
         
         // ==================== 其他功能 ====================
@@ -693,9 +975,8 @@ ${boardStr}
             if (isAIThinking) { showToast('AI思考中，无法悔棋'); return; }
             if (moveHistory.length < 2) { showToast('无法悔棋'); return; }
             
-            // 回退两步（玩家和AI各一步）
-            moveHistory.pop(); // 移除AI的走法
-            gameState.board = moveHistory.pop(); // 恢复玩家的走法前
+            moveHistory.pop();
+            gameState.board = moveHistory.pop();
             
             gameState.turn = 'red';
             gameState.moves = gameState.moves.slice(0, -2);
@@ -710,15 +991,17 @@ ${boardStr}
         function resign() {
             if (gameState.status !== 'playing') return;
             if (!confirm('确定要认输吗？')) return;
-            showToast('你认输了，AI获胜！');
+            const isHell = gameState.difficulty === 'hell';
+            showToast(isHell ? '🔥 地狱AI获胜！人类无法抵挡！' : '你认输了，AI获胜！', isHell);
             gameState.status = 'finished';
             playSound('win');
-            updateAIStatus('AI 获胜');
+            updateAIStatus(isHell ? '🔥 地狱AI统治战场' : 'AI 获胜', isHell);
         }
         
-        function showToast(msg) {
+        function showToast(msg, isHell = false) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
+            toast.className = 'toast' + (isHell ? ' hell' : '');
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
